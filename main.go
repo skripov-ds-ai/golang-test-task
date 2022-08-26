@@ -310,6 +310,15 @@ func main() {
 		fmt.Println(err)
 	}
 
-	_ = UniversalHandler{DB: db, validator: v}
+	logic := UniversalHandler{DB: db, validator: v}
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/create_ad", logic.CreateAd)
+	mux.HandleFunc("/get_ad", logic.GetAd)
+	mux.HandleFunc("/list_ads", logic.ListAds)
+
+	err = http.ListenAndServe(":3000", mux)
+	if err != nil {
+		panic(err)
+	}
 }
