@@ -100,6 +100,21 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type GetAdAPI struct {
+	ID int `json:"id"`
+	Fields []string `json:"fields"`
+}
+
+type GetAdAnswer struct {
+	Status string `json:"status"`
+	Result *map[string]interface{} `json:"result"`
+}
+
+func (u *UniversalHandler) getAd(id int, fields []string) (err error) {
+
+	return nil
+}
+
 // CreateAd is a function to create ad
 //
 // Params: title, description, photo_urls, price
