@@ -6,7 +6,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"io"
 
-	//"github.com/ericlagergren/decimal"
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -126,11 +125,34 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.Status = "success"
+	if item != nil {
+		m := createMapFromAdItem(*item, api.Fields)
+		result.Result = &m
+	}
 
 	// TODO: add item handling
 	fmt.Println(item)
 	bs1, _ := json.Marshal(result)
 	_, _ = w.Write(bs1)
+}
+
+func createMapFromAdItem(item AdItem, fields []string) (m map[string]interface{}) {
+	m = map[string]interface{}{}
+	m["id"] = item.ID
+	m["title"] = item.Title
+	m["main_image_url"] = item.MainImageURL.URL
+	for _, field := range fields {
+		if field == "description" {
+			m["description"] = item.Description
+		} else if field == "" {
+			imgUrls := make([]string, 0)
+			for _, v := range item.ImageURLSs {
+				imgUrls = append(imgUrls, v.URL)
+			}
+			m["image_urls"] = imgUrls
+		}
+	}
+	return m
 }
 
 type GetAdAPI struct {
@@ -140,7 +162,7 @@ type GetAdAPI struct {
 
 type GetAdAnswer struct {
 	Status string  `json:"status"`
-	Result *AdItem `json:"result"`
+	Result *map[string]interface{} `json:"result"`
 }
 
 func (u *UniversalHandler) getAd(id int, fields []string) (res *AdItem, err error) {
