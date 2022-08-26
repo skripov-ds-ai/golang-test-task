@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"io"
+
 	//"github.com/ericlagergren/decimal"
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
@@ -46,11 +49,58 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 // Params: title, description, photo_urls, price
 // Return: ID of new ad, code of a result
 func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
+	result := CreateAdAnswer{ID: nil, Status: "error"}
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusBadRequest)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
 		return
 	}
 
+	bs, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	var item AdJSONItem
+	err = json.Unmarshal(bs, &item)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+	err = u.validator.Struct(item)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+	//for _, e := range err.(validator.ValidationErrors) {
+	//	fmt.Println(e)
+	//}
+
+	id, err := u.createAd(item)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+	result.Status = "success"
+	result.ID = &id
+
+	bs1, _ := json.Marshal(result)
+	_, _ = w.Write(bs1)
+}
+
+type CreateAdAnswer struct {
+	Status string `json:"status"`
+	ID *int `json:"id,omitempty"`
 }
 
 type ImageURL struct {
@@ -76,24 +126,23 @@ type AdItem struct {
 	MainImageURL ImageURL        `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
-func (u *UniversalHandler) createAd(title, description string,
-	photoURLs []string, price decimal.Decimal) (id int, err error) {
+func (u *UniversalHandler) createAd(item AdJSONItem) (id int, err error) {
 	size := 0
-	if len(photoURLs) > 1 {
-		size = len(photoURLs) - 1
+	if len(item.ImageURLs) > 1 {
+		size = len(item.ImageURLs) - 1
 	}
 
 	var imageURLs = make([]ImageURL, size)
 
 	if size > 0 {
-		for i := range photoURLs {
-			imageURLs[i].URL = photoURLs[i+1]
+		for i := range item.ImageURLs {
+			imageURLs[i].URL = item.ImageURLs[i+1]
 		}
 	}
 
-	mainImageURL := ImageURL{URL: photoURLs[0]}
+	mainImageURL := ImageURL{URL: item.ImageURLs[0]}
 
-	ad := AdItem{Title: title, Description: description, Price: price,
+	ad := AdItem{Title: item.Title, Description: item.Description, Price: item.Price,
 		ImageURLSs: imageURLs, MainImageURL: mainImageURL}
 
 	db := u.DB.Create(&ad)
