@@ -20,16 +20,54 @@ type UniversalHandler struct {
 	validator *validator.Validate
 }
 
+type Pagination struct {
+	Offset int    `json:"offset"`
+	By     string `json:"by"`
+	Asc    bool   `json:"asc"`
+}
+
 // ListAds is a function to get list of ads
 //
 // sorting by price/date_created; asc/desc order
 // TODO: add pagination size to params
 func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
+	result := ListAdsAnswer{Status: "error"}
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusBadRequest)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
 		return
 	}
 
+	bs, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	var pag Pagination
+	err = json.Unmarshal(bs, &pag)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	// TODO: make paginationSize customizable
+	items, err := u.listAds(pag.Offset, paginationSize, pag.By, pag.Asc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	result.Result = items
+	bs1, _ := json.Marshal(result)
+	_, _ = w.Write(bs1)
 }
 
 func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
@@ -118,7 +156,12 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 
 type CreateAdAnswer struct {
 	Status string `json:"status"`
-	ID     *int   `json:"id,omitempty"`
+	ID     *int   `json:"id"`
+}
+
+type ListAdsAnswer struct {
+	Status string          `json:"status"`
+	Result []AdAPIListItem `json:"result"`
 }
 
 type ImageURL struct {
