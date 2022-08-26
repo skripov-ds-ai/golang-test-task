@@ -161,7 +161,7 @@ type GetAdAPI struct {
 }
 
 type GetAdAnswer struct {
-	Status string  `json:"status"`
+	Status string                  `json:"status"`
 	Result *map[string]interface{} `json:"result"`
 }
 
