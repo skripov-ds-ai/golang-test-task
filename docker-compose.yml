@@ -1,0 +1,22 @@
+version: '3.2'
+
+volumes:
+  tmp-data:
+  redis-data:
+
+services:
+  app:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    restart: on-failure
+    ports:
+      - "8888:3000"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14.4
+    restart: on-failure
+    ports:
+      - "5432:5432"
