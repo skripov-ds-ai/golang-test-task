@@ -32,6 +32,11 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bool) {
+	_ = u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Find(&AdAPIListItem{})
+
+}
+
 // GetAd is a function to get concreate ad
 //
 // required fields: title, price, main_photo_url
@@ -100,7 +105,7 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 
 type CreateAdAnswer struct {
 	Status string `json:"status"`
-	ID *int `json:"id,omitempty"`
+	ID     *int   `json:"id,omitempty"`
 }
 
 type ImageURL struct {
@@ -124,6 +129,12 @@ type AdItem struct {
 	Price        decimal.Decimal `sql:"type:decimal(20,8);"`
 	ImageURLSs   []ImageURL      `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	MainImageURL ImageURL        `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+}
+
+type AdAPIListItem struct {
+	ID    int
+	Title string
+	Price decimal.Decimal
 }
 
 func (u *UniversalHandler) createAd(item AdJSONItem) (id int, err error) {
