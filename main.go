@@ -34,7 +34,12 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 
 func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
 	items := []*AdAPIListItem{}
-	db := u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Find(&items)
+	ascOrDesc := "asc"
+	if !asc {
+		ascOrDesc = "desc"
+	}
+	order := fmt.Sprintf("%s %s", by, ascOrDesc)
+	db := u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
 	err = db.Error
 	if err != nil {
 		return resItems, err
