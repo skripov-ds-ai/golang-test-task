@@ -32,9 +32,17 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bool) {
-	_ = u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Find(&AdAPIListItem{})
-
+func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
+	items := []*AdAPIListItem{}
+	db := u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Find(&items)
+	err = db.Error
+	if err != nil {
+		return resItems, err
+	}
+	for _, v := range items {
+		resItems = append(resItems, *v)
+	}
+	return resItems, nil
 }
 
 // GetAd is a function to get concreate ad
