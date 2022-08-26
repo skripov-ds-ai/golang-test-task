@@ -93,11 +93,44 @@ func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bo
 // required fields: title, price, main_photo_url
 // additional: by parameter `fields`(description, photo_urls)
 func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
+	result := GetAdAnswer{Status: "error"}
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusBadRequest)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
 		return
 	}
 
+	bs, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	var api GetAdAPI
+	err = json.Unmarshal(bs, &api)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+
+	item, err := u.getAd(api.ID, api.Fields)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		bs1, _ := json.Marshal(result)
+		_, _ = w.Write(bs1)
+		return
+	}
+	result.Status = "success"
+
+	// TODO: add item handling
+	fmt.Println(item)
+	bs1, _ := json.Marshal(result)
+	_, _ = w.Write(bs1)
 }
 
 type GetAdAPI struct {
@@ -107,12 +140,17 @@ type GetAdAPI struct {
 
 type GetAdAnswer struct {
 	Status string                  `json:"status"`
-	Result *map[string]interface{} `json:"result"`
+	Result *AdItem `json:"result"`
 }
 
-func (u *UniversalHandler) getAd(id int, fields []string) (err error) {
-
-	return nil
+func (u *UniversalHandler) getAd(id int, fields []string) (res *AdItem, err error) {
+	var item AdItem
+	db := u.DB.First(&item, id)
+	err = db.Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
 }
 
 // CreateAd is a function to create ad
