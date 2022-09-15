@@ -30,5 +30,7 @@ func Test_Main(t *testing.T) {
 
 	fmt.Println("resp Status:", resp.Status)
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println("resp Body:", body)
+	result := map[string]interface{}{}
+	_ = json.Unmarshal(body, &result)
+	fmt.Println("resp Body:", result)
 }
