@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 	"io"
 
 	"github.com/shopspring/decimal"
@@ -17,6 +18,7 @@ const paginationSize int = 10
 type UniversalHandler struct {
 	DB        *gorm.DB
 	validator *validator.Validate
+	logger    *zap.Logger
 }
 
 type Pagination struct {
@@ -40,6 +42,7 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 
 	bs, err := io.ReadAll(r.Body)
 	if err != nil {
+		u.logger.Error("error during ReadAll in ListAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -49,6 +52,7 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 	var pag Pagination
 	err = json.Unmarshal(bs, &pag)
 	if err != nil {
+		u.logger.Error("error during Unmarshal in ListAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -58,6 +62,7 @@ func (u *UniversalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 	// TODO: make paginationSize customizable
 	items, err := u.listAds(pag.Offset, paginationSize, pag.By, pag.Asc)
 	if err != nil {
+		u.logger.Error("error during listAds in ListAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -79,6 +84,7 @@ func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bo
 	db := u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
 	err = db.Error
 	if err != nil {
+		u.logger.Error("error during getting data in listAd", zap.Error(err))
 		return resItems, err
 	}
 	for _, v := range items {
@@ -102,6 +108,7 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 
 	bs, err := io.ReadAll(r.Body)
 	if err != nil {
+		u.logger.Error("error during ReadAll in GetAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -111,6 +118,7 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 	var api GetAdAPI
 	err = json.Unmarshal(bs, &api)
 	if err != nil {
+		u.logger.Error("error during Unmarshal in GetAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -118,7 +126,8 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := u.getAd(api.ID, api.Fields)
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
+		u.logger.Error("error during getAd in GetAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -170,6 +179,7 @@ func (u *UniversalHandler) getAd(id int, fields []string) (res *AdItem, err erro
 	db := u.DB.First(&item, id)
 	err = db.Error
 	if err != nil {
+		u.logger.Error("error during getting data in getAd", zap.Error(err))
 		return nil, err
 	}
 	return &item, nil
@@ -190,6 +200,7 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 
 	bs, err := io.ReadAll(r.Body)
 	if err != nil {
+		u.logger.Error("error during ReadAll in CreateAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -199,6 +210,7 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 	var item AdJSONItem
 	err = json.Unmarshal(bs, &item)
 	if err != nil {
+		u.logger.Error("error during Unmarshal in CreateAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -206,6 +218,7 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 	}
 	err = u.validator.Struct(item)
 	if err != nil {
+		u.logger.Error("error during validating in CreateAd", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -217,6 +230,7 @@ func (u *UniversalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
 
 	id, err := u.createAd(item)
 	if err != nil {
+		u.logger.Error("error during createAd in CreateAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs1, _ := json.Marshal(result)
 		_, _ = w.Write(bs1)
@@ -241,8 +255,8 @@ type ListAdsAnswer struct {
 
 type ImageURL struct {
 	gorm.Model
-	URL  string
-	AdID int
+	URL      string
+	AdItemID int
 }
 
 type AdJSONItem struct {
@@ -258,8 +272,8 @@ type AdItem struct {
 	Title        string
 	Description  string
 	Price        decimal.Decimal `sql:"type:decimal(20,8);"`
-	ImageURLSs   []ImageURL      `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	MainImageURL ImageURL        `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	ImageURLSs   []ImageURL      `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	MainImageURL ImageURL        `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 type AdAPIListItem struct {
@@ -285,11 +299,13 @@ func (u *UniversalHandler) createAd(item AdJSONItem) (id int, err error) {
 	mainImageURL := ImageURL{URL: item.ImageURLs[0]}
 
 	ad := AdItem{Title: item.Title, Description: item.Description, Price: item.Price,
-		ImageURLSs: imageURLs, MainImageURL: mainImageURL}
+		ImageURLSs: imageURLs, MainImageURL: mainImageURL,
+	}
 
 	db := u.DB.Create(&ad)
 	err = db.Error
 	if err != nil {
+		u.logger.Error("error during creating datum in createAd", zap.Error(err))
 		return 0, err
 	}
 	return ad.ID, nil
@@ -304,13 +320,24 @@ func main() {
 	// refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details
 	//dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 	//db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	dsn := "host=localhost user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	dsn := "host=postgres user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.AutoMigrate(&AdItem{}, &ImageURL{})
+
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	//d, err := db.DB()
+	////d.Close()
+	//d.Ping()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	logic := UniversalHandler{DB: db, validator: v}
+	logic := UniversalHandler{DB: db, validator: v, logger: logger}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/create_ad", logic.CreateAd)
