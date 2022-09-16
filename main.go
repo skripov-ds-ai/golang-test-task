@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io"
-	"moul.io/zapgorm2"
-
-	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"io"
 	"net/http"
 )
 
@@ -142,7 +140,7 @@ func (u *UniversalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: add item handling
-	fmt.Println(item)
+	//fmt.Println(item)
 	bs1, _ := json.Marshal(result)
 	_, _ = w.Write(bs1)
 }
@@ -266,10 +264,10 @@ type ImageURL struct {
 }
 
 type AdJSONItem struct {
-	Title       string          `json:"title" validate:"required"`
-	Description string          `json:"description" validate:"required"`
+	Title       string          `json:"title" validate:"required,min=1,max=200"`
+	Description string          `json:"description" validate:"required,max=1000"`
 	Price       decimal.Decimal `json:"price" validate:"required,numeric"`
-	ImageURLs   []string        `json:"imageURLs" validate:"required"`
+	ImageURLs   []string        `json:"imageURLs" validate:"required,min=3"`
 }
 
 type AdItem struct {
@@ -330,16 +328,18 @@ func main() {
 	//dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 	//db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
-	c := zap.NewDevelopmentConfig()
-	c.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	l, _ := c.Build()
-	defer l.Sync()
-	loggerG := zapgorm2.New(l)
-	loggerG.SetAsDefault() // optional: configure gorm to use this zapgorm.Logger for callbacks
+	//c := zap.NewDevelopmentConfig()
+	//c.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	//l, _ := c.Build()
+	//defer l.Sync()
+	//loggerG := zapgorm2.New(l)
+	//loggerG.SetAsDefault() // optional: configure gorm to use this zapgorm.Logger for callbacks
 
 	dsn := "host=postgres user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: loggerG})
-	//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: loggerG})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		//Logger: glogger.Default.LogMode(glogger.Warn),
+	})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -355,9 +355,9 @@ func main() {
 	//d, err := db.DB()
 	////d.Close()
 	//d.Ping()
-	if err != nil {
-		fmt.Println(err)
-	}
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
 
 	logic := UniversalHandler{DB: db, validator: v, logger: logger}
 
