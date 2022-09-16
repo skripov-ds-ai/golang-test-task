@@ -149,13 +149,17 @@ func createMapFromAdItem(item AdItem, fields []string) (m map[string]interface{}
 	m = map[string]interface{}{}
 	m["id"] = item.ID
 	m["title"] = item.Title
-	m["main_image_url"] = item.MainImageURL.URL
+	var url *string = nil
+	if item.MainImageURL != nil {
+		url = &item.MainImageURL.URL
+	}
+	m["main_image_url"] = url
 	for _, field := range fields {
 		if field == "description" {
 			m["description"] = item.Description
 		} else if field == "" {
 			imgUrls := make([]string, 0)
-			for _, v := range item.ImageURLSs {
+			for _, v := range item.ImageURLs {
 				imgUrls = append(imgUrls, v.URL)
 			}
 			m["image_urls"] = imgUrls
@@ -272,8 +276,8 @@ type AdItem struct {
 	Title        string
 	Description  string
 	Price        decimal.Decimal `sql:"type:decimal(20,8);"`
-	ImageURLSs   []ImageURL      `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	MainImageURL ImageURL        `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	ImageURLs    []ImageURL      `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	MainImageURL *ImageURL       `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 type AdAPIListItem struct {
@@ -296,10 +300,13 @@ func (u *UniversalHandler) createAd(item AdJSONItem) (id int, err error) {
 		}
 	}
 
-	mainImageURL := ImageURL{URL: item.ImageURLs[0]}
+	var mainImageURL *ImageURL = nil
+	if len(item.ImageURLs) > 0 {
+		mainImageURL = &ImageURL{URL: item.ImageURLs[0]}
+	}
 
 	ad := AdItem{Title: item.Title, Description: item.Description, Price: item.Price,
-		ImageURLSs: imageURLs, MainImageURL: mainImageURL,
+		ImageURLs: imageURLs, MainImageURL: mainImageURL,
 	}
 
 	db := u.DB.Create(&ad)
