@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 const paginationSize int = 10
@@ -81,7 +82,7 @@ func (u *UniversalHandler) listAds(offset, paginationSize int, by string, asc bo
 		ascOrDesc = "desc"
 	}
 	order := fmt.Sprintf("%s %s", by, ascOrDesc)
-	db := u.DB.Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
+	db := u.DB.Preload("ImageURLs").Preload("MainImageURL").Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
 	err = db.Error
 	if err != nil {
 		u.logger.Error("error during getting data in listAd", zap.Error(err))
@@ -151,13 +152,15 @@ func createMapFromAdItem(item AdItem, fields []string) (m map[string]interface{}
 	m["title"] = item.Title
 	var url *string = nil
 	if item.MainImageURL != nil {
+		//fmt.Println(item)
 		url = &item.MainImageURL.URL
 	}
+	//fmt.Println(item)
 	m["main_image_url"] = url
 	for _, field := range fields {
 		if field == "description" {
 			m["description"] = item.Description
-		} else if field == "" {
+		} else if field == "image_urls" {
 			imgUrls := make([]string, 0)
 			for _, v := range item.ImageURLs {
 				imgUrls = append(imgUrls, v.URL)
@@ -180,7 +183,7 @@ type GetAdAnswer struct {
 
 func (u *UniversalHandler) getAd(id int, fields []string) (res *AdItem, err error) {
 	var item AdItem
-	db := u.DB.First(&item, id)
+	db := u.DB.Preload("ImageURLs").Preload("MainImageURL").First(&item, id).Association("MainImageURL")
 	err = db.Error
 	if err != nil {
 		u.logger.Error("error during getting data in getAd", zap.Error(err))
@@ -267,7 +270,7 @@ type AdJSONItem struct {
 	Title       string          `json:"title" validate:"required,min=1,max=200"`
 	Description string          `json:"description" validate:"required,max=1000"`
 	Price       decimal.Decimal `json:"price" validate:"required,numeric"`
-	ImageURLs   []string        `json:"imageURLs" validate:"required,min=3"`
+	ImageURLs   []string        `json:"imageURLs" validate:"required,max=3,checkURL"`
 }
 
 type AdItem struct {
@@ -287,23 +290,28 @@ type AdAPIListItem struct {
 }
 
 func (u *UniversalHandler) createAd(item AdJSONItem) (id int, err error) {
+	var mainImageURL *ImageURL = nil
 	size := 0
-	if len(item.ImageURLs) > 1 {
-		size = len(item.ImageURLs) - 1
-	}
-
-	var imageURLs = make([]ImageURL, size)
-
-	if size > 0 {
-		for i := range item.ImageURLs {
-			imageURLs[i].URL = item.ImageURLs[i+1]
+	imgURLsSize := len(item.ImageURLs)
+	if imgURLsSize > 0 {
+		mainImageURL = &ImageURL{URL: item.ImageURLs[0]}
+		if imgURLsSize > 1 {
+			size = imgURLsSize - 1
 		}
 	}
 
-	var mainImageURL *ImageURL = nil
-	if len(item.ImageURLs) > 0 {
-		mainImageURL = &ImageURL{URL: item.ImageURLs[0]}
+	var imageURLs = make([]ImageURL, size)
+	if imgURLsSize > 1 {
+		arr := item.ImageURLs[1:]
+		for i := range arr {
+			if i == 0 {
+				continue
+			}
+			imageURLs[i].URL = arr[i]
+		}
 	}
+
+	fmt.Println("!", mainImageURL)
 
 	ad := AdItem{Title: item.Title, Description: item.Description, Price: item.Price,
 		ImageURLs: imageURLs, MainImageURL: mainImageURL,
@@ -323,6 +331,19 @@ func main() {
 	decimal.MarshalJSONWithoutQuotes = true
 
 	v := validator.New()
+	_ = v.RegisterValidation("checkURL", func(fl validator.FieldLevel) bool {
+		arr, ok := fl.Field().Interface().([]string)
+		if !ok {
+			return false
+		}
+		for _, a := range arr {
+			_, err := url.ParseRequestURI(a)
+			if err != nil {
+				return false
+			}
+		}
+		return true
+	})
 
 	// refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details
 	//dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"

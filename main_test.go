@@ -14,7 +14,7 @@ import (
 )
 
 func TestGetAd(t *testing.T) {
-	data := GetAdAPI{ID: 3, Fields: []string{}}
+	data := GetAdAPI{ID: 10, Fields: []string{"description", "image_urls"}}
 	bs, _ := json.Marshal(data)
 
 	req, err := http.NewRequest("GET", "http://localhost:8888/get_ad", bytes.NewBuffer(bs))
@@ -38,15 +38,15 @@ func TestGetAd(t *testing.T) {
 
 func TestCreateAd(t *testing.T) {
 	num, _ := decimal.NewFromString("123.76")
-	b := make([]rune, 201)
+	b := make([]rune, 200)
 	for i := range b {
-		b[i] = 'a'
+		b[i] = 'e'
 	}
 	title := string(b)
 	data := AdJSONItem{
 		Title: title, Description: "xyz",
 		Price:     num,
-		ImageURLs: []string{},
+		ImageURLs: []string{"http://yandex.ru"},
 	}
 	bs, _ := json.Marshal(data)
 
