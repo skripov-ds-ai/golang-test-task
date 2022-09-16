@@ -14,7 +14,7 @@ import (
 )
 
 func TestGetAd(t *testing.T) {
-	data := GetAdAPI{ID: 1, Fields: []string{}}
+	data := GetAdAPI{ID: 0, Fields: []string{}}
 	bs, _ := json.Marshal(data)
 
 	req, err := http.NewRequest("GET", "http://localhost:8888/get_ad", bytes.NewBuffer(bs))

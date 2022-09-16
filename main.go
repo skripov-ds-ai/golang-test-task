@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io"
+	"moul.io/zapgorm2"
 
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
@@ -327,14 +329,27 @@ func main() {
 	// refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details
 	//dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 	//db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	c := zap.NewDevelopmentConfig()
+	c.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	l, _ := c.Build()
+	defer l.Sync()
+	loggerG := zapgorm2.New(l)
+	loggerG.SetAsDefault() // optional: configure gorm to use this zapgorm.Logger for callbacks
+
 	dsn := "host=postgres user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: loggerG})
+	//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 	db.AutoMigrate(&AdItem{}, &ImageURL{})
 
-	logger, _ := zap.NewProduction()
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	logger, _ := config.Build()
+
+	//logger, _ := zap.NewDevelopment()
 	defer logger.Sync()
 
 	//d, err := db.DB()
