@@ -7,7 +7,7 @@
 
 [badge_build]:https://img.shields.io/github/workflow/status/nizhikebinesi/golang-test-task/tests
 [badge_language]:https://img.shields.io/badge/language-go_1.18-blue.svg?longCache=true
-[link_build]:https://github.com/nizhikebinesi/online_store/actions
+[link_build]:https://github.com/nizhikebinesi/golang-test-task/actions
 
 ### **Задача**
 
