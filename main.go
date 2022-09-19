@@ -302,7 +302,7 @@ type AdAPIListItem struct {
 }
 
 func (u *universalHandler) createAd(item AdJSONItem) (id int, err error) {
-	var mainImageURL *ImageURL = nil
+	var mainImageURL *ImageURL
 	size := 0
 	imgURLsSize := len(item.ImageURLs)
 	if imgURLsSize > 0 {
