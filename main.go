@@ -152,13 +152,13 @@ func createMapFromAdItem(item AdItem, fields []string) (m map[string]interface{}
 	m = map[string]interface{}{}
 	m["id"] = item.ID
 	m["title"] = item.Title
-	var url *string = nil
+	var u *string
 	if item.MainImageURL != nil {
 		// fmt.Println(item)
-		url = &item.MainImageURL.URL
+		u = &item.MainImageURL.URL
 	}
 	// fmt.Println(item)
-	m["main_image_url"] = url
+	m["main_image_url"] = u
 	for _, field := range fields {
 		if field == "description" {
 			m["description"] = item.Description
