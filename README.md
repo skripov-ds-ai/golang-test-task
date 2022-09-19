@@ -5,7 +5,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/nizhikebinesi)](https://twitter.com/nizhikebinesi)
 
 
-[badge_build]:https://img.shields.io/github/workflow/status/nizhikebinesi/golang-test-task/push_pr
+[badge_build]:https://img.shields.io/github/workflow/status/nizhikebinesi/golang-test-task/Check%20on%20PRs%20and%20push
 [badge_language]:https://img.shields.io/badge/language-go_1.18-blue.svg?longCache=true
 [link_build]:https://github.com/nizhikebinesi/golang-test-task/actions
 
