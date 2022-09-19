@@ -1,0 +1,35 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - gofmt
+    - errcheck
+    - gosimple
+    - revive
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - nilerr
+    - goimports
+    - gocognit
+    - nakedret
+    - gochecknoinits
+    - goconst
+    - misspell
+    - unconvert
+    - unparam
+    - gocritic
+    - prealloc
+    - exportloopref
+
+issues:
+  exclude:
+    - composites
+    - "should have a package comment"
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0

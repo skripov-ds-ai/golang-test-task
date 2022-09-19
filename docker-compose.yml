@@ -1,6 +1,7 @@
 version: '3.2'
 
 volumes:
+  db-data:
   tmp-data:
   redis-data:
 
@@ -18,5 +19,12 @@ services:
   postgres:
     image: postgres:14.4
     restart: on-failure
+    environment:
+      - POSTGRES_USER=gorm
+      - POSTGRES_PASSWORD=gorm
+      - POSTGRES_DB=gorm
+    volumes:
+      - ./dump:/docker-entrypoint-initdb.d/
+      - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
