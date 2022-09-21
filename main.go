@@ -39,7 +39,7 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		u.logger.Error("error during ReadAll in ListAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ := json.Marshal(result)
+		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
