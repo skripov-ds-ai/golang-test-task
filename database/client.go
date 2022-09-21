@@ -2,11 +2,13 @@ package database
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 
 	"golang-test-task/entities"
+
+	"gorm.io/gorm"
 )
 
+// Client is wrapper for database
 type Client struct {
 	db *gorm.DB
 }

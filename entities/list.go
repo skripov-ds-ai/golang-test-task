@@ -2,6 +2,7 @@ package entities
 
 import "github.com/shopspring/decimal"
 
+// PaginationSize is a constant for item list
 const PaginationSize int = 10
 
 // Pagination contains all information required to paginate records' table
