@@ -1,8 +1,19 @@
-## **Задача**
+## Сервис для подачи объявлений
+![Project language][badge_language]
+[![Build Status][badge_build]][link_build]
+[![codecov](https://codecov.io/gh/nizhikebinesi/golang-test-task/graph/badge.svg?token=JJVKAZ8PWX)](https://codecov.io/gh/nizhikebinesi/golang-test-task)
+[![Twitter Follow](https://img.shields.io/twitter/follow/nizhikebinesi)](https://twitter.com/nizhikebinesi)
+
+
+[badge_build]:https://img.shields.io/github/workflow/status/nizhikebinesi/golang-test-task/Check%20on%20PRs%20and%20push
+[badge_language]:https://img.shields.io/badge/language-go_1.18-blue.svg?longCache=true
+[link_build]:https://github.com/nizhikebinesi/golang-test-task/actions
+
+### **Задача**
 
 Разработать сервис для подачи объявлений с сохранением в базе данных. Сервис должен предоставлять API, работающее поверх HTTP в формате JSON.
 
-## **Требования**
+### **Требования**
 
 - Язык программирования — Go;
 - Готовую версию выложить на Github;
@@ -18,16 +29,16 @@
     - название не больше 200 символов;
 
 Если есть сомнения по деталям — решение принять самостоятельно, 
-но в своём README.md рекомендуем выписать вопросы и принятые решения по ним.
+но в своём `README.md` рекомендуем выписать вопросы и принятые решения по ним.
 
-## Ограничения по времени
+### Ограничения по времени
 
 2-4 часа на выполнение. Если что-то не укладывается в указанное время, 
 то реализовать задачу по степени важности функционала. 
 Мы не требуем выполнить абсолютно всё. Здесь важны умение приоритизировать и 
 чистота кода.
 
-## **Детали**
+### **Детали**
 
 **Метод получения списка объявлений**
 
