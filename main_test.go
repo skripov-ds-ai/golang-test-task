@@ -11,10 +11,13 @@ package main
 //	"io"
 //	"net/http"
 //	"testing"
+//
+//	"golang-test-task/entities"
 //)
 //
 //func TestGetAd(t *testing.T) {
-//	data := GetAdAPI{ID: 10, Fields: []string{"description", "image_urls"}}
+//	id := 100
+//	data := entities.GetAdAPI{ID: id, Fields: []string{"description", "image_urls"}}
 //	bs, _ := json.Marshal(data)
 //
 //	req, err := http.NewRequest("GET", "http://localhost:8888/get_ad", bytes.NewBuffer(bs))
@@ -43,7 +46,7 @@ package main
 //		b[i] = 'e'
 //	}
 //	title := string(b)
-//	data := AdJSONItem{
+//	data := entities.AdJSONItem{
 //		Title: title, Description: "xyz",
 //		Price:     num,
 //		ImageURLs: []string{"http://yandex.ru"},
