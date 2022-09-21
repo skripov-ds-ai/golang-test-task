@@ -16,36 +16,55 @@ import (
 	"gorm.io/gorm"
 )
 
-type universalHandler struct {
-	dbClient  *database.Client
-	validator *validator.Validate
-	logger    *zap.Logger
+type (
+	universalHandler struct {
+		dbClient  *database.Client
+		validator *validator.Validate
+		logger    *zap.Logger
+	}
+	handler   func(w http.ResponseWriter, r *http.Request)
+	handlerBs func(w http.ResponseWriter, bs []byte)
+)
+
+func (u *universalHandler) readAllWrap(h handlerBs) handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bs, err := io.ReadAll(r.Body)
+		if err != nil {
+			u.logger.Error("error during ReadAll")
+			result := make(map[string]interface{})
+			result["status"] = "error"
+			bs, _ = json.Marshal(result)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write(bs)
+			return
+		}
+		h(w, bs)
+	}
+}
+
+func (u *universalHandler) checkMethod(method string, h handler) handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != method {
+			u.logger.Error("wrong method")
+			result := make(map[string]interface{})
+			result["status"] = "error"
+			bs, _ := json.Marshal(result)
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write(bs)
+			return
+		}
+		h(w, r)
+	}
 }
 
 // ListAds is a function to get list of ads
 //
 // sorting by price/date_created; asc/desc order
 // TODO: add pagination size to params
-func (u *universalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
+func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
 	result := entities.ListAdsAnswer{Status: "error"}
-	if r.Method != "GET" {
-		w.WriteHeader(http.StatusBadRequest)
-		bs, _ := json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
-	bs, err := io.ReadAll(r.Body)
-	if err != nil {
-		u.logger.Error("error during ReadAll in ListAds", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
 	var pag entities.Pagination
-	err = json.Unmarshal(bs, &pag)
+	err := json.Unmarshal(bs, &pag)
 	if err != nil {
 		u.logger.Error("error during Unmarshal in ListAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -73,26 +92,10 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, r *http.Request) {
 //
 // required fields: title, price, main_photo_url
 // additional: by parameter `fields`(description, photo_urls)
-func (u *universalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
+func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 	result := entities.GetAdAnswer{Status: "error"}
-	if r.Method != "GET" {
-		w.WriteHeader(http.StatusBadRequest)
-		bs, _ := json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
-	bs, err := io.ReadAll(r.Body)
-	if err != nil {
-		u.logger.Error("error during ReadAll in GetAd", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
 	var api entities.GetAdAPI
-	err = json.Unmarshal(bs, &api)
+	err := json.Unmarshal(bs, &api)
 	if err != nil {
 		u.logger.Error("error during Unmarshal in GetAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -123,26 +126,10 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, r *http.Request) {
 //
 // Params: title, description, photo_urls, price
 // Return: ID of new ad, code of a result
-func (u *universalHandler) CreateAd(w http.ResponseWriter, r *http.Request) {
+func (u *universalHandler) CreateAd(w http.ResponseWriter, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
-	if r.Method != "POST" {
-		w.WriteHeader(http.StatusBadRequest)
-		bs, _ := json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
-	bs, err := io.ReadAll(r.Body)
-	if err != nil {
-		u.logger.Error("error during ReadAll in CreateAd", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-
 	var item entities.AdJSONItem
-	err = json.Unmarshal(bs, &item)
+	err := json.Unmarshal(bs, &item)
 	if err != nil {
 		u.logger.Error("error during Unmarshal in CreateAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -214,9 +201,9 @@ func main() {
 	logic := universalHandler{dbClient: client, validator: v, logger: logger}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/create_ad", logic.CreateAd)
-	mux.HandleFunc("/get_ad", logic.GetAd)
-	mux.HandleFunc("/list_ads", logic.ListAds)
+	mux.HandleFunc("/create_ad", logic.checkMethod("POST", logic.readAllWrap(logic.CreateAd)))
+	mux.HandleFunc("/get_ad", logic.checkMethod("GET", logic.readAllWrap(logic.GetAd)))
+	mux.HandleFunc("/list_ads", logic.checkMethod("POST", logic.readAllWrap(logic.ListAds)))
 
 	err = http.ListenAndServe(":3000", mux)
 	if err != nil {

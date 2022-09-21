@@ -24,7 +24,7 @@ func NewClient(db *gorm.DB) *Client {
 func (c *Client) GetAd(id int) (res *AdItem, err error) {
 	// TODO: add fields to use in .Select(fields)
 	var item AdItem
-	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id).Association("MainImageURL")
+	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id)
 	err = db.Error
 	if err != nil {
 		return nil, err
