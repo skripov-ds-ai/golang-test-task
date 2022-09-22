@@ -35,7 +35,7 @@ func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, 
 }
 
 // GetHandler gives a handler based on endpoint
-func (hf *HandlerFacade) GetHandler(s string) (handler, bool) {
+func (hf *HandlerFacade) GetHandler(s string) (func(w http.ResponseWriter, r *http.Request), bool) {
 	h, ok := hf.handlers[s]
 	return h, ok
 }
