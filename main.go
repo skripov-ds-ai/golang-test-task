@@ -65,7 +65,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v0.1/create_ad", logic.checkMethod("POST", logic.readAllWrap(logic.CreateAd)))
 	mux.HandleFunc("/api/v0.1/get_ad", logic.checkMethod("GET", logic.readAllWrap(logic.GetAd)))
-	mux.HandleFunc("/api/v0.1/list_ads", logic.checkMethod("POST", logic.readAllWrap(logic.ListAds)))
+	mux.HandleFunc("/api/v0.1/list_ads", logic.checkMethod("GET", logic.readAllWrap(logic.ListAds)))
 
 	err = http.ListenAndServe(":3000", mux)
 	if err != nil {

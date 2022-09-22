@@ -138,7 +138,7 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 // @Failure 400 {object} entities.CreateAdAnswer{}
 // @Failure 500 {object} entities.CreateAdAnswer{}
 // @Success 200 {object} entities.CreateAdAnswer{}
-// @Router /create_ad [get]
+// @Router /create_ad [post]
 func (u *universalHandler) CreateAd(w http.ResponseWriter, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
 	var item entities.AdJSONItem
