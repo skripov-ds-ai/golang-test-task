@@ -33,14 +33,14 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 }
 
 // ListAds gives list of items
-func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []entities.AdAPIListItem, err error) {
-	items := []*entities.AdAPIListItem{}
+func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
+	var items []*AdAPIListItem
 	ascOrDesc := "asc"
 	if !asc {
 		ascOrDesc = "desc"
 	}
 	order := fmt.Sprintf("%s %s", by, ascOrDesc)
-	db := c.db.Preload("ImageURLs").Preload("MainImageURL").Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
+	db := c.db.Preload("MainImageURL").Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
 	err = db.Error
 	if err != nil {
 		return resItems, err
