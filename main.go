@@ -82,8 +82,12 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
 		_, _ = w.Write(bs)
 		return
 	}
+	itms := make([]map[string]interface{}, len(items))
+	for i, v := range items {
+		itms[i] = v.CreateMap()
+	}
 
-	result.Result = items
+	result.Result = itms
 	bs, _ = json.Marshal(result)
 	_, _ = w.Write(bs)
 }
@@ -114,7 +118,7 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 	}
 	result.Status = "success"
 	if item != nil {
-		m := item.CreateMapFromAdItem(api.Fields)
+		m := item.CreateMap(api.Fields)
 		result.Result = &m
 	}
 
