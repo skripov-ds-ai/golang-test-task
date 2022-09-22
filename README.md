@@ -1,6 +1,6 @@
 ## Сервис для подачи объявлений
 ![Project language][badge_language]
-[![Build Status][badge_build]][link_build]
+[![Test & Lint Status][badge_build]][link_build]
 [![codecov](https://codecov.io/gh/nizhikebinesi/golang-test-task/graph/badge.svg?token=JJVKAZ8PWX)](https://codecov.io/gh/nizhikebinesi/golang-test-task)
 [![Twitter Follow](https://img.shields.io/twitter/follow/nizhikebinesi)](https://twitter.com/nizhikebinesi)
 
@@ -9,9 +9,15 @@
 [badge_language]:https://img.shields.io/badge/language-go_1.18-blue.svg?longCache=true
 [link_build]:https://github.com/nizhikebinesi/golang-test-task/actions
 
+
+### Как запустить
+0. Установить Docker и [Docker-Compose](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04-ru)
+1. `docker-compose build && docker-compose up -d`
+
 ### **Задача**
 
-Разработать сервис для подачи объявлений с сохранением в базе данных. Сервис должен предоставлять API, работающее поверх HTTP в формате JSON.
+Разработать сервис для подачи объявлений с сохранением в базе данных. 
+Сервис должен предоставлять API, работающее поверх HTTP в формате JSON.
 
 ### **Требования**
 
