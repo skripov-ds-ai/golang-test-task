@@ -22,7 +22,7 @@ func (a AnyTime) Match(v driver.Value) bool {
 	return ok
 }
 
-func TestClientGetAd(t *testing.T) {
+func TestClient_GetAdEmptyDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -59,7 +59,7 @@ func TestClientGetAd(t *testing.T) {
 	}
 }
 
-func TestClientListAds(t *testing.T) {
+func TestClient_ListAdsEmptyDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -101,7 +101,7 @@ func TestClientListAds(t *testing.T) {
 	}
 }
 
-func TestClientCreateAd(t *testing.T) {
+func TestClient_CreateAd(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -131,6 +131,58 @@ func TestClientCreateAd(t *testing.T) {
 		`INSERT INTO "ad_items" ("created_at","updated_at","deleted_at","title","description","price")
 			VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id","id"`)).
 		WithArgs(AnyTime{}, AnyTime{}, nil, item.Title, item.Description, item.Price).
+		WillReturnRows(mockedRow)
+	mock.ExpectCommit()
+	mock.ExpectClose()
+
+	client := NewClient(gormDB)
+	actualID, err := client.CreateAd(item)
+	if err != nil {
+		t.Fatalf("err != nil ; err = %v", err)
+	}
+	if id != actualID {
+		t.Fatalf("id != actualID ; id = %d ; actualID = %d", id, actualID)
+	}
+}
+
+func TestClient_CreateAdWithImages(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+	dialector := postgres.New(postgres.Config{
+		DSN:                  "sqlmock_db_0",
+		DriverName:           "postgres",
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	})
+	gormDB, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when init gorm", err)
+	}
+	if gormDB == nil {
+		t.Fatalf("gormDB is null")
+	}
+
+	id := 0
+	url := "example"
+	item := entities.AdJSONItem{ImageURLs: []string{url}}
+	mockedRow := sqlmock.NewRows([]string{"id"}).AddRow(strconv.Itoa(id))
+	mock.MatchExpectationsInOrder(true)
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(
+		`INSERT INTO "ad_items" ("created_at","updated_at","deleted_at","title","description","price")
+			VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id","id"`)).
+		WithArgs(AnyTime{}, AnyTime{}, nil, item.Title, item.Description, item.Price).
+		WillReturnRows(mockedRow)
+	mock.ExpectQuery(regexp.QuoteMeta(
+		`INSERT INTO "image_urls" ("created_at","updated_at","deleted_at","url","ad_item_id") 
+					VALUES ($1,$2,$3,$4,$5) ON CONFLICT ("id") DO UPDATE 
+					SET "ad_item_id"="excluded"."ad_item_id"`)).
+		WithArgs(AnyTime{}, AnyTime{}, nil, url, id).
 		WillReturnRows(mockedRow)
 	mock.ExpectCommit()
 	mock.ExpectClose()

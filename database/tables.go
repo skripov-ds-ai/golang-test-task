@@ -28,6 +28,7 @@ func (item *AdItem) CreateMap(fields []string) (m map[string]interface{}) {
 	m = map[string]interface{}{}
 	m["id"] = item.ID
 	m["title"] = item.Title
+	m["price"] = item.Price
 	var u *string
 	if item.MainImageURL != nil {
 		u = &item.MainImageURL.URL
@@ -60,6 +61,7 @@ func (item *AdAPIListItem) CreateMap() (m map[string]interface{}) {
 	m = map[string]interface{}{}
 	m["id"] = item.ID
 	m["title"] = item.Title
+	m["price"] = item.Price
 	var u *string
 	if item.MainImageURL != nil {
 		u = &item.MainImageURL.URL
