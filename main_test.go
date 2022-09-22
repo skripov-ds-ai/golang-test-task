@@ -17,7 +17,7 @@ package main
 //	data := entities.GetAdAPI{ID: id, Fields: []string{"description", "image_urls"}}
 //	bs, _ := json.Marshal(data)
 //
-//	req, err := http.NewRequest("GET", "http://localhost:8888/get_ad", bytes.NewBuffer(bs))
+//	req, err := http.NewRequest("GET", "http://localhost:8888/api/v0.1/get_ad", bytes.NewBuffer(bs))
 //	if err != nil {
 //		panic(err)
 //	}
@@ -41,7 +41,7 @@ package main
 //	data := entities.Pagination{By: "id"}
 //	bs, _ := json.Marshal(data)
 //
-//	req, err := http.NewRequest("POST", "http://localhost:8888/list_ads", bytes.NewBuffer(bs))
+//	req, err := http.NewRequest("POST", "http://localhost:8888/api/v0.1/list_ads", bytes.NewBuffer(bs))
 //	if err != nil {
 //		panic(err)
 //	}
@@ -74,7 +74,7 @@ package main
 //	}
 //	bs, _ := json.Marshal(data)
 //
-//	req, err := http.NewRequest("POST", "http://localhost:8888/create_ad", bytes.NewBuffer(bs))
+//	req, err := http.NewRequest("POST", "http://localhost:8888/api/v0.1/create_ad", bytes.NewBuffer(bs))
 //	if err != nil {
 //		panic(err)
 //	}
