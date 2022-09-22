@@ -14,6 +14,16 @@
 0. Установить Docker и [Docker-Compose](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04-ru)
 1. `docker-compose build && docker-compose up -d`
 
+### API
+Address: `http://localhost:8888`
+Prefix: `/api/v0.1`
+
+| Endpoint | Method | Description                                |
+| ---   | ------------- |--------------------------------------------|
+| `/create_ad` | `POST` | Создание объявления |                       
+| `/get_ad` | `GET` | Получение объявления |                      
+| `/list_ads` | `GET` | Получение списка объявлений(для пагинции)  |
+
 ### **Задача**
 
 Разработать сервис для подачи объявлений с сохранением в базе данных. 
