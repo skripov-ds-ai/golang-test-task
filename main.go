@@ -1,10 +1,9 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"golang-test-task/database"
-	"golang-test-task/entities"
-	"io"
+	"golang-test-task/facade"
 	"net/http"
 	"net/url"
 
@@ -63,13 +62,18 @@ func main() {
 	}()
 
 	client := database.NewClient(db)
-	logic := universalHandler{dbClient: client, validator: v, logger: logger}
+	logic := facade.NewHandlerFacade(client, v, logger)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v0.1/create_ad", logic.checkMethod("POST", logic.readAllWrap(logic.CreateAd)))
-	mux.HandleFunc("/api/v0.1/get_ad", logic.checkMethod("GET", logic.readAllWrap(logic.GetAd)))
-	mux.HandleFunc("/api/v0.1/list_ads", logic.checkMethod("GET", logic.readAllWrap(logic.ListAds)))
-
+	endpoints := []string{"create_ad", "get_ad", "list_ads"}
+	for _, endpoint := range endpoints {
+		path := fmt.Sprintf("/api/v0.1/%s", endpoint)
+		if h, ok := logic.GetHandler(endpoint); ok {
+			mux.HandleFunc(path, h)
+		} else {
+			logger.Warn("handler endpoint does not contain in logic", zap.String("endpoint", endpoint))
+		}
+	}
 	err = http.ListenAndServe(":3000", mux)
 	if err != nil {
 		panic(err)

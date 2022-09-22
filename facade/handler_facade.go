@@ -1,31 +1,50 @@
-package main
+package facade
 
 import (
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 	"golang-test-task/database"
 	"golang-test-task/entities"
-	"gorm.io/gorm"
 	"io"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type (
-	universalHandler struct {
+	// HandlerFacade is helper struct for getting handlers and hiding inner logic of an app
+	HandlerFacade struct {
 		dbClient  *database.Client
 		validator *validator.Validate
 		logger    *zap.Logger
+		handlers  map[string]handler
 	}
 	handler   func(w http.ResponseWriter, r *http.Request)
 	handlerBs func(w http.ResponseWriter, bs []byte)
 )
 
-func (u *universalHandler) readAllWrap(h handlerBs) handler {
+// NewHandlerFacade is constructor for HandlerFacade
+func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
+	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
+	facade.handlers = make(map[string]handler)
+	facade.handlers["create_ad"] = facade.checkMethod("POST", facade.readAllWrap(facade.createAd))
+	facade.handlers["get_ad"] = facade.checkMethod("GET", facade.readAllWrap(facade.getAd))
+	facade.handlers["list_ads"] = facade.checkMethod("GET", facade.readAllWrap(facade.listAds))
+	return &facade
+}
+
+// GetHandler gives a handler based on endpoint
+func (hf *HandlerFacade) GetHandler(s string) (handler, bool) {
+	h, ok := hf.handlers[s]
+	return h, ok
+}
+
+func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bs, err := io.ReadAll(r.Body)
 		if err != nil {
-			u.logger.Error("error during ReadAll")
+			hf.logger.Error("error during ReadAll")
 			result := make(map[string]interface{})
 			result["status"] = "error"
 			bs, _ = json.Marshal(result)
@@ -37,10 +56,10 @@ func (u *universalHandler) readAllWrap(h handlerBs) handler {
 	}
 }
 
-func (u *universalHandler) checkMethod(method string, h handler) handler {
+func (hf *HandlerFacade) checkMethod(method string, h handler) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
-			u.logger.Error("wrong method")
+			hf.logger.Error("wrong method")
 			result := make(map[string]interface{})
 			result["status"] = "error"
 			bs, _ := json.Marshal(result)
@@ -52,7 +71,7 @@ func (u *universalHandler) checkMethod(method string, h handler) handler {
 	}
 }
 
-// ListAds is a function to get list of ads
+// listAds is a function to get list of ads
 //
 // sorting by price/date_created; asc/desc order
 // TODO: add pagination size to params
@@ -62,12 +81,12 @@ func (u *universalHandler) checkMethod(method string, h handler) handler {
 // @Failure 500 {object} entities.ListAdsAnswer{}
 // @Success 200 {object} entities.ListAdsAnswer{}
 // @Router /list_ads [get]
-func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) listAds(w http.ResponseWriter, bs []byte) {
 	result := entities.ListAdsAnswer{Status: "error"}
 	var pag entities.Pagination
 	err := json.Unmarshal(bs, &pag)
 	if err != nil {
-		u.logger.Error("error during Unmarshal in ListAds", zap.Error(err))
+		hf.logger.Error("error during Unmarshal in listAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
@@ -75,21 +94,25 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
 	}
 
 	// TODO: make paginationSize customizable
-	items, err := u.dbClient.ListAds(pag.Offset, entities.PaginationSize, pag.By, pag.Asc)
+	items, err := hf.dbClient.ListAds(pag.Offset, entities.PaginationSize, pag.By, pag.Asc)
 	if err != nil {
-		u.logger.Error("error during dbClient.ListAds in ListAds", zap.Error(err))
+		hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	result.Result = items
+	itms := make([]map[string]interface{}, len(items))
+	for i, v := range items {
+		itms[i] = v.CreateMap()
+	}
+	result.Result = itms
 	bs, _ = json.Marshal(result)
 	_, _ = w.Write(bs)
 }
 
-// GetAd is a function to get concreate ad
+// getAd is a function to get concreate ad
 //
 // required fields: title, price, main_photo_url
 // additional: by parameter `fields`(description, photo_urls)
@@ -99,21 +122,21 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
 // @Failure 500 {object} entities.GetAdAnswer{}
 // @Success 200 {object} entities.GetAdAnswer{}
 // @Router /get_ad [get]
-func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) getAd(w http.ResponseWriter, bs []byte) {
 	result := entities.GetAdAnswer{Status: "error"}
 	var api entities.GetAdAPI
 	err := json.Unmarshal(bs, &api)
 	if err != nil {
-		u.logger.Error("error during Unmarshal in GetAd", zap.Error(err))
+		hf.logger.Error("error during Unmarshal in getAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	item, err := u.dbClient.GetAd(api.ID)
+	item, err := hf.dbClient.GetAd(api.ID)
 	if err != nil && err != gorm.ErrRecordNotFound {
-		u.logger.Error("error during dbClient.GetAd in GetAd", zap.Error(err))
+		hf.logger.Error("error during dbClient.getAd in getAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
@@ -121,7 +144,7 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 	}
 	result.Status = "success"
 	if item != nil {
-		m := item.CreateMapFromAdItem(api.Fields)
+		m := item.CreateMap(api.Fields)
 		result.Result = &m
 	}
 
@@ -129,7 +152,7 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 	_, _ = w.Write(bs)
 }
 
-// CreateAd is a function to create ad
+// createAd is a function to create ad
 //
 // Params: title, description, photo_urls, price
 // Return: ID of new ad, code of a result
@@ -139,29 +162,29 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 // @Failure 500 {object} entities.CreateAdAnswer{}
 // @Success 200 {object} entities.CreateAdAnswer{}
 // @Router /create_ad [post]
-func (u *universalHandler) CreateAd(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
 	var item entities.AdJSONItem
 	err := json.Unmarshal(bs, &item)
 	if err != nil {
-		u.logger.Error("error during Unmarshal in CreateAd", zap.Error(err))
+		hf.logger.Error("error during Unmarshal in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
-	err = u.validator.Struct(item)
+	err = hf.validator.Struct(item)
 	if err != nil {
-		u.logger.Error("error during validating in CreateAd", zap.Error(err))
+		hf.logger.Error("error during validating in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	id, err := u.dbClient.CreateAd(item)
+	id, err := hf.dbClient.CreateAd(item)
 	if err != nil {
-		u.logger.Error("error during dbClient.CreateAd in CreateAd", zap.Error(err))
+		hf.logger.Error("error during dbClient.createAd in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
