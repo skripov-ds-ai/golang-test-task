@@ -30,10 +30,8 @@ func (item *AdItem) CreateMapFromAdItem(fields []string) (m map[string]interface
 	m["title"] = item.Title
 	var u *string
 	if item.MainImageURL != nil {
-		// fmt.Println(item)
 		u = &item.MainImageURL.URL
 	}
-	// fmt.Println(item)
 	m["main_image_url"] = u
 	for _, field := range fields {
 		if field == "description" {
