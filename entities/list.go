@@ -1,7 +1,5 @@
 package entities
 
-import "github.com/shopspring/decimal"
-
 // PaginationSize is a constant for item list
 const PaginationSize int = 10
 
@@ -12,15 +10,8 @@ type Pagination struct {
 	Asc    bool   `json:"asc"`
 }
 
-// AdAPIListItem stores information is needed for pagination show
-type AdAPIListItem struct {
-	ID    int
-	Title string
-	Price decimal.Decimal
-}
-
 // ListAdsAnswer combine a status of a list process and a result
 type ListAdsAnswer struct {
-	Status string          `json:"status"`
-	Result []AdAPIListItem `json:"result"`
+	Status string                   `json:"status"`
+	Result []map[string]interface{} `json:"result"`
 }

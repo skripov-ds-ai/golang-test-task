@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"golang-test-task/database"
 	"golang-test-task/entities"
+	"gorm.io/gorm/logger"
 	"io"
 	"net/http"
 	"net/url"
@@ -82,8 +83,12 @@ func (u *universalHandler) ListAds(w http.ResponseWriter, bs []byte) {
 		_, _ = w.Write(bs)
 		return
 	}
+	itms := make([]map[string]interface{}, len(items))
+	for i, v := range items {
+		itms[i] = v.CreateMap()
+	}
 
-	result.Result = items
+	result.Result = itms
 	bs, _ = json.Marshal(result)
 	_, _ = w.Write(bs)
 }
@@ -114,7 +119,7 @@ func (u *universalHandler) GetAd(w http.ResponseWriter, bs []byte) {
 	}
 	result.Status = "success"
 	if item != nil {
-		m := item.CreateMapFromAdItem(api.Fields)
+		m := item.CreateMap(api.Fields)
 		result.Result = &m
 	}
 
@@ -181,7 +186,7 @@ func main() {
 	})
 
 	dsn := "host=postgres user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		panic("failed to connect database")
 	}

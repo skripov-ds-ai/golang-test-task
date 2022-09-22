@@ -59,6 +59,51 @@ func TestClientGetAd(t *testing.T) {
 	}
 }
 
+func TestClientListAds(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+	dialector := postgres.New(postgres.Config{
+		DSN:                  "sqlmock_db_0",
+		DriverName:           "postgres",
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	})
+	gormDB, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when init gorm", err)
+	}
+	if gormDB == nil {
+		t.Fatalf("gormDB is null")
+	}
+
+	mock.MatchExpectationsInOrder(true)
+
+	//mock.ExpectQuery(regexp.QuoteMeta(
+	//	`SELECT * FROM "image_url";`))
+
+	mock.ExpectQuery(regexp.QuoteMeta(
+		`SELECT "ad_items"."id","ad_items"."title","ad_items"."price" 
+			FROM "ad_items" WHERE "ad_items"."deleted_at" IS NULL ORDER BY id asc LIMIT 10`)).
+		WillReturnRows(sqlmock.NewRows([]string{}))
+
+	mock.ExpectQuery(regexp.QuoteMeta(
+		`SELECT * FROM "image_url";`))
+
+	client := NewClient(gormDB)
+	items, err := client.ListAds(0, 10, "id", true)
+	if err != nil {
+		t.Fatalf("nil error was expected; actual = %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("zero length of items was expected ; items = %v", items)
+	}
+}
+
 func TestClientCreateAd(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

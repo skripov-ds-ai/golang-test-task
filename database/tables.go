@@ -23,11 +23,12 @@ type AdItem struct {
 	MainImageURL *ImageURL       `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
-// CreateMapFromAdItem creates map based on fields to show
-func (item *AdItem) CreateMapFromAdItem(fields []string) (m map[string]interface{}) {
+// CreateMap creates map based on fields to show
+func (item *AdItem) CreateMap(fields []string) (m map[string]interface{}) {
 	m = map[string]interface{}{}
 	m["id"] = item.ID
 	m["title"] = item.Title
+	//m["price"] = item.Price
 	var u *string
 	if item.MainImageURL != nil {
 		u = &item.MainImageURL.URL
@@ -44,5 +45,27 @@ func (item *AdItem) CreateMapFromAdItem(fields []string) (m map[string]interface
 			m["image_urls"] = imgUrls
 		}
 	}
+	return m
+}
+
+// AdAPIListItem stores information is needed for pagination show
+type AdAPIListItem struct {
+	ID           int
+	Title        string
+	Price        decimal.Decimal
+	MainImageURL *ImageURL `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+}
+
+// CreateMap creates map based on fields to show
+func (item *AdAPIListItem) CreateMap() (m map[string]interface{}) {
+	m = map[string]interface{}{}
+	m["id"] = item.ID
+	m["title"] = item.Title
+	//m["price"] = item.Price
+	var u *string
+	if item.MainImageURL != nil {
+		u = &item.MainImageURL.URL
+	}
+	m["main_image_url"] = u
 	return m
 }

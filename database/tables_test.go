@@ -6,7 +6,7 @@ func TestCreateMapFromAdItemEmptyItem(t *testing.T) {
 	item := AdItem{}
 	var url *string
 	expected := map[string]interface{}{"id": 0, "main_image_url": url, "title": ""}
-	actual := item.CreateMapFromAdItem([]string{})
+	actual := item.CreateMap([]string{})
 
 	if len(expected) != len(actual) {
 		t.Fatalf("len(expected) != len(actual) ; expected = %v ; actual = %v", expected, actual)
@@ -28,7 +28,7 @@ func TestCreateMapFromAdItemNotNilMainImage(t *testing.T) {
 	mainURL := ImageURL{URL: *url}
 	item := AdItem{MainImageURL: &mainURL}
 	expected := map[string]interface{}{"id": 0, "main_image_url": url, "title": ""}
-	actual := item.CreateMapFromAdItem([]string{})
+	actual := item.CreateMap([]string{})
 
 	if len(expected) != len(actual) {
 		t.Fatalf("len(expected) != len(actual) ; expected = %v ; actual = %v", expected, actual)
@@ -57,7 +57,7 @@ func TestCreateMapFromAdItemEmptyItemAdditionalFieldsEmptyImageList(t *testing.T
 	var url *string
 	item := AdItem{}
 	expected := map[string]interface{}{"id": 0, "main_image_url": url, "title": "", "description": "", "image_urls": []string{}}
-	actual := item.CreateMapFromAdItem([]string{"description", "image_urls"})
+	actual := item.CreateMap([]string{"description", "image_urls"})
 
 	if len(expected) != len(actual) {
 		t.Fatalf("len(expected) != len(actual) ; expected = %v ; actual = %v", expected, actual)
