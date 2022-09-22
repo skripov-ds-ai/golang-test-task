@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"golang-test-task/database"
 	"golang-test-task/entities"
-	"gorm.io/gorm/logger"
 	"io"
 	"net/http"
 	"net/url"
@@ -186,7 +185,7 @@ func main() {
 	})
 
 	dsn := "host=postgres user=gorm password=gorm dbname=gorm port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

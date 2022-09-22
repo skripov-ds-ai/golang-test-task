@@ -83,9 +83,6 @@ func TestClientListAds(t *testing.T) {
 
 	mock.MatchExpectationsInOrder(true)
 
-	//mock.ExpectQuery(regexp.QuoteMeta(
-	//	`SELECT * FROM "image_url";`))
-
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT "ad_items"."id","ad_items"."title","ad_items"."price" 
 			FROM "ad_items" WHERE "ad_items"."deleted_at" IS NULL ORDER BY id asc LIMIT 10`)).
