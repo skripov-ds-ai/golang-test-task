@@ -1,8 +1,6 @@
 package database
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestCreateMapFromAdItemEmptyItem(t *testing.T) {
 	item := AdItem{}
