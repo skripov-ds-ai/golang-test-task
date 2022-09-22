@@ -34,7 +34,7 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 
 // ListAds gives list of items
 func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []entities.AdAPIListItem, err error) {
-	items := []*entities.AdAPIListItem{}
+	var items []*entities.AdAPIListItem
 	ascOrDesc := "asc"
 	if !asc {
 		ascOrDesc = "desc"
