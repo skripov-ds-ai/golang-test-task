@@ -22,7 +22,7 @@ func (a AnyTime) Match(v driver.Value) bool {
 	return ok
 }
 
-func TestClientGetAd(t *testing.T) {
+func TestClient_GetAdEmptyDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -59,7 +59,7 @@ func TestClientGetAd(t *testing.T) {
 	}
 }
 
-func TestClientListAds(t *testing.T) {
+func TestClient_ListAdsEmptyDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -101,7 +101,7 @@ func TestClientListAds(t *testing.T) {
 	}
 }
 
-func TestClientCreateAd(t *testing.T) {
+func TestClient_CreateAd(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
