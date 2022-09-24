@@ -25,7 +25,7 @@ Prefix: `/api/v0.1`
 | `/list_ads` | `GET` | Получение списка объявлений(для пагинции)  |
 
 ### TODOs
-1. [ x ] Добавить `Sentry`
+1. [x] Добавить `Sentry`
 2. [ ] Добавить `Prometheus`, `Grafana`
 3. [ ] Добавить `Master-Slave репликацию` для `Postgres`
 4. [ ] Добавить `HA Proxy`/`Consul`/`pgpool`/`pgbouncer`
