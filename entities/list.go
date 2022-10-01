@@ -5,8 +5,8 @@ const PaginationSize int = 10
 
 // Pagination contains all information required to paginate records' table
 type Pagination struct {
-	Offset int    `json:"offset"`
-	By     string `json:"by"`
+	Offset int    `json:"offset" validate:"required,min=0"`
+	By     string `json:"by" validate:"required,oneof=price created_at"`
 	Asc    bool   `json:"asc"`
 }
 

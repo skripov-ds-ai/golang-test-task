@@ -2,7 +2,7 @@ package entities
 
 // GetAdAPI stores information about interesting item and which fields to show
 type GetAdAPI struct {
-	ID     int      `json:"id"`
+	ID     int      `json:"id" validate:"numeric,min=0"`
 	Fields []string `json:"fields"`
 }
 
