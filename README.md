@@ -1,4 +1,4 @@
-## Сервис для подачи объявлений
+# Сервис для подачи объявлений
 ![Project language][badge_language]
 [![Test & Lint Status][badge_build]][link_build]
 [![codecov](https://codecov.io/gh/nizhikebinesi/golang-test-task/graph/badge.svg?token=JJVKAZ8PWX)](https://codecov.io/gh/nizhikebinesi/golang-test-task)
@@ -10,11 +10,11 @@
 [link_build]:https://github.com/nizhikebinesi/golang-test-task/actions
 
 
-### Как запустить
+## Как запустить
 0. Установить Docker и [Docker-Compose](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04-ru)
 1. `docker-compose build && docker-compose up -d`
 
-### API
+## API
 Address: `http://localhost:8888`
 Prefix: `/api/v0.1`
 
@@ -24,7 +24,220 @@ Prefix: `/api/v0.1`
 | `/get_ad` | `GET` | Получение объявления |                      
 | `/list_ads` | `GET` | Получение списка объявлений(для пагинции)  |
 
-### TODOs
+## Примеры использования
+### 1. Создать объявление(`/create_ad`)
+
+Пример запроса:
+```shell
+curl POST -v -d "{
+  \"title\": \"Гараж\",
+  \"description\": \"Продам гараж\nТелефон:...\",
+  \"price\": 45999.99,
+  \"image_urls\": [\"photo.example.ru/img/1.png\", \"photo.example.ru/img/2.jpg\", \"photo.example.ru/img/3.jpeg\"],
+}" http://localhost:8888/v0.1/create_ad
+```
+Пример успешного ответа:
+```json
+{
+  "status": "success",
+  "id": 1
+}
+```
+Пример неудачного ответа:
+
+```json
+{
+  "status": "error",
+  "id": null
+}
+```
+
+### 2. Получить объявление по ID(`/get_ad`)
+Пример запроса:
+```shell
+curl -X GET -d "{
+  \"id\": 1,
+  \"fields\": [\"description\", \"image_urls\"]
+}" "http://localhost:8888/v0.1/get_ad/"
+```
+Примеры успешных ответов:
+```json
+{
+  "status": "success",
+  "result": {
+    "id": 1,
+    "title": "Гараж",
+    "description": "Продам гараж!",
+    "price": 99999.99,
+    "main_image_url": "garage.ru/img/1.png",
+    "image_urls": ["supergarage.ru/img/2.jpeg"]
+  }
+}
+```
+
+```json
+{
+  "status": "success",
+  "result": {
+    "id": 1,
+    "title": "Гараж",
+    "description": "Продам гараж!",
+    "price": 99999.99,
+    "main_image_url": null,
+    "image_urls": []
+  }
+}
+```
+
+Пример неудачных ответов:
+```json
+{
+  "status": "error",
+  "result": null
+}
+```
+
+### 3.1. Получить список объявлений для пагинации(вторые 10 объявлений с сортировкой по дате по возрастанию, в случае 13 объявлений в БД)
+Пример запроса:
+```shell
+curl -X GET -d "{
+  \"by\": \"created_at\",
+  \"asc\": true,
+  \"offset\": 10
+}" "http://localhost:8888/v0.1/list_ads"
+```
+Пример ответа:
+```json
+{
+  "status": "success",
+  "result": [
+    {
+      "id": 11,
+      "title": "Гараж",
+      "description": "Продам гараж!",
+      "price": 99999.99,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 12,
+      "title": "Тетрадь в клетку",
+      "description": "",
+      "price": 79.89,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 13,
+      "title": "Книга №42",
+      "description": "",
+      "price": 979.29,
+      "main_image_url": null,
+      "image_urls": []
+    }
+  ]
+}
+```
+
+### 3.2. Получить список объявлений для пагинации(первые 10 объявлений с сортировкой по цене по убыванию)
+Пример запроса:
+```shell
+curl -X GET -d "{
+  \"by\": \"created_at\",
+  \"asc\": true,
+  \"offset\": 10
+}" "http://localhost:8888/v0.1/list_ads"
+```
+Пример ответа:
+```json
+{
+  "status": "success",
+  "result": [
+    {
+      "id": 1,
+      "title": "Гараж",
+      "description": "Продам гараж!",
+      "price": 99999.99,
+      "main_image_url": "garage.ru/img/1.png",
+      "image_urls": []
+    },
+    {
+      "id": 2,
+      "title": "Тетрадь в клетку",
+      "description": "",
+      "price": 79.89,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 3,
+      "title": "Книга №42",
+      "description": "",
+      "price": 979.29,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 4,
+      "title": "Уловка 22",
+      "description": "Роман американского писателя Джозефа Хеллера, опубликованный в 1961 году. ",
+      "price": 629.99,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 5,
+      "title": "Обои",
+      "description": "Рулон обоев",
+      "price": 2629.99,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 6,
+      "title": "Воздух",
+      "description": "Свежий воздух",
+      "price": 9999999.99,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 7,
+      "title": "Дженга",
+      "description": "Настольная игра...",
+      "price": 999,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 8,
+      "title": "Сахар",
+      "description": "На развес, цена за 1 кг",
+      "price": 57.87,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 9,
+      "title": "Соль",
+      "description": "Цена за килограмм",
+      "price": 15,
+      "main_image_url": null,
+      "image_urls": []
+    },
+    {
+      "id": 10,
+      "title": "Ноутбук",
+      "description": "",
+      "price": 16999.99,
+      "main_image_url": "top.laptops/ultra/1.jpeg",
+      "image_urls": []
+    }
+  ]
+}
+```
+
+## TODOs
 1. [x] Добавить `Sentry`
 2. [ ] Добавить `Prometheus`, `Grafana`
 3. [ ] Добавить `Master-Slave репликацию` для `Postgres`
@@ -34,6 +247,7 @@ Prefix: `/api/v0.1`
 7. [ ] Добавить `DELETE`(удаления записей) и `PUT`(изменения записей) методы в сервис
 8. [ ] Добавить тестирование через `dockertest`
 
+## Оригинальный текст
 ### **Задача**
 
 Разработать сервис для подачи объявлений с сохранением в базе данных. 

@@ -93,6 +93,15 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, bs []byte) {
 		return
 	}
 
+	err = hf.validator.Struct(pag)
+	if err != nil {
+		hf.logger.Error("error during validating in listAds", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		bs, _ = json.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+	}
+
 	// TODO: make paginationSize customizable
 	items, err := hf.dbClient.ListAds(pag.Offset, entities.PaginationSize, pag.By, pag.Asc)
 	if err != nil {
@@ -129,6 +138,15 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, bs []byte) {
 	if err != nil {
 		hf.logger.Error("error during Unmarshal in getAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
+		bs, _ = json.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+	}
+
+	err = hf.validator.Struct(api)
+	if err != nil {
+		hf.logger.Error("error during validating in getAd", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
