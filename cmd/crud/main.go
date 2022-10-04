@@ -54,13 +54,13 @@ func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) 
 	return a
 }
 
-//// Run is need to run an app
-// func (a *App) Run() {
-//	err := http.ListenAndServe(":3000", a.Router)
-//	if err != nil {
-//		a.logger.Panic("not nil serving", zap.Error(err))
-//	}
-// }
+// Run is need to run an app
+func (a *App) Run() {
+	err := http.ListenAndServe(":3000", a.Router)
+	if err != nil {
+		a.logger.Panic("not nil serving", zap.Error(err))
+	}
+}
 
 func main() {
 	config := zap.NewDevelopmentConfig()
@@ -126,9 +126,5 @@ func main() {
 
 	client := database.NewClient(db)
 	app := NewApp(client, v, logger)
-	// app.Run()
-	err = http.ListenAndServe(":3000", app.Router)
-	if err != nil {
-		logger.Panic("not nil serving", zap.Error(err))
-	}
+	app.Run()
 }
