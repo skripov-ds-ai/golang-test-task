@@ -1,7 +1,6 @@
 package facade
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/mailru/easyjson"
 	"golang-test-task/internal/database"
@@ -53,9 +52,8 @@ func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 		bs, err := io.ReadAll(r.Body)
 		if err != nil {
 			hf.logger.Error("error during ReadAll")
-			result := make(map[string]interface{})
-			result["status"] = "error"
-			bs, _ = json.Marshal(result)
+			result := entities.GetAdAnswer{Status: "error"}
+			bs, _ = easyjson.Marshal(result)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(bs)
 			return
