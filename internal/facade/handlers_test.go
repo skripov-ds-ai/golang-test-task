@@ -251,6 +251,66 @@ func (suite *HandlerFacadeTestSuite) TestGetAdInvalidFields() {
 	}
 }
 
+func (suite *HandlerFacadeTestSuite) TestListAdsStringOffset() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads?offset=wrong", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestListAdsNegativeOffset() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads?offset=-1", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestListAdsInvalidBy() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads?by=-42", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestListAdsInvalidAsc() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads?asc=-42", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
 func TestHandlerFacadeTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerFacadeTestSuite))
 }

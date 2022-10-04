@@ -88,12 +88,22 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(bs)
 			return
 		}
+		if offsetInt < 0 {
+			hf.logger.Error(
+				"offset is negative integer in listAds",
+				zap.Error(err), zap.Strings("offsetStrings", offsetStrings),
+				zap.String("offsetStrings[0]", offsetStrings[0]))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = json.Marshal(result)
+			_, _ = w.Write(bs)
+			return
+		}
 		offset = offsetInt
 	}
 
 	byStrings := params["by"]
 	var by string
-	if len(by) == 0 {
+	if len(byStrings) == 0 {
 		by = entities.ByCreatedAt
 	} else {
 		by = byStrings[0]
