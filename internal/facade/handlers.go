@@ -30,9 +30,9 @@ type (
 func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
 	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
 	facade.handlers = make(map[string]handler)
-	facade.handlers["create_ad"] = facade.checkMethod("POST", facade.readAllWrap(facade.createAd))
-	facade.handlers["get_ad"] = facade.checkMethod("GET", facade.getAd)
-	facade.handlers["list_ads"] = facade.checkMethod("GET", facade.listAds)
+	facade.handlers["create_ad"] = facade.readAllWrap(facade.createAd)
+	facade.handlers["get_ad"] = facade.getAd
+	facade.handlers["list_ads"] = facade.listAds
 	return &facade
 }
 
@@ -55,21 +55,6 @@ func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 			return
 		}
 		h(w, bs)
-	}
-}
-
-func (hf *HandlerFacade) checkMethod(method string, h handler) handler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != method {
-			hf.logger.Error("wrong method")
-			result := make(map[string]interface{})
-			result["status"] = "error"
-			bs, _ := json.Marshal(result)
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write(bs)
-			return
-		}
-		h(w, r)
 	}
 }
 
