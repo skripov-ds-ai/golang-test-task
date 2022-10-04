@@ -1,5 +1,11 @@
 package main
 
+// func (a *App) executeRequest(req *http.Request) *httptest.ResponseRecorder {
+//	res := httptest.NewRecorder()
+//	a.r.ServeHTTP(res, req)
+//	return res
+// }
+
 // import (
 //	"bytes"
 //	"encoding/json"
