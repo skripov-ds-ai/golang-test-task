@@ -30,6 +30,34 @@ import (
 // @Host localhost:8888
 // @BasePath /api/v0.1
 
+type App struct {
+	r      *mux.Router
+	logger *zap.Logger
+}
+
+func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
+	logic := facade.NewHandlerFacade(client, v, logger)
+
+	r := mux.NewRouter()
+
+	getAdHandler, _ := logic.GetHandler("get_ad")
+	listAdsHandler, _ := logic.GetHandler("list_ads")
+	createAdHandler, _ := logic.GetHandler("create_ad")
+	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
+	r.HandleFunc("/ads", createAdHandler).Methods("POST")
+	r.HandleFunc("/ads/{id}", getAdHandler).Methods("GET")
+
+	a := &App{r: r, logger: logger}
+	return a
+}
+
+func (a *App) Run() {
+	err := http.ListenAndServe(":3000", a.r)
+	if err != nil {
+		a.logger.Panic("not nil serving", zap.Error(err))
+	}
+}
+
 func main() {
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -93,19 +121,6 @@ func main() {
 	}
 
 	client := database.NewClient(db)
-	logic := facade.NewHandlerFacade(client, v, logger)
-
-	r := mux.NewRouter()
-
-	getAdHandler, _ := logic.GetHandler("get_ad")
-	listAdsHandler, _ := logic.GetHandler("list_ads")
-	createAdHandler, _ := logic.GetHandler("create_ad")
-	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
-	r.HandleFunc("/ads", createAdHandler).Methods("POST")
-	r.HandleFunc("/ads/{id}", getAdHandler).Methods("GET")
-
-	err = http.ListenAndServe(":3000", r)
-	if err != nil {
-		logger.Panic("not nil serving", zap.Error(err))
-	}
+	app := NewApp(client, v, logger)
+	app.Run()
 }
