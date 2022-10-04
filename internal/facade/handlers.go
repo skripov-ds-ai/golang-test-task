@@ -30,9 +30,9 @@ type (
 func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
 	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
 	facade.handlers = make(map[string]handler)
-	facade.handlers["create_ad"] = facade.checkMethod("POST", facade.readAllWrap(facade.createAd))
-	facade.handlers["get_ad"] = facade.checkMethod("GET", facade.getAd)
-	facade.handlers["list_ads"] = facade.checkMethod("GET", facade.listAds)
+	facade.handlers["create_ad"] = facade.readAllWrap(facade.createAd)
+	facade.handlers["get_ad"] = facade.getAd
+	facade.handlers["list_ads"] = facade.listAds
 	return &facade
 }
 
@@ -55,21 +55,6 @@ func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 			return
 		}
 		h(w, bs)
-	}
-}
-
-func (hf *HandlerFacade) checkMethod(method string, h handler) handler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != method {
-			hf.logger.Error("wrong method")
-			result := make(map[string]interface{})
-			result["status"] = "error"
-			bs, _ := json.Marshal(result)
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write(bs)
-			return
-		}
-		h(w, r)
 	}
 }
 
@@ -103,12 +88,22 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(bs)
 			return
 		}
+		if offsetInt < 0 {
+			hf.logger.Error(
+				"offset is negative integer in listAds",
+				zap.Error(err), zap.Strings("offsetStrings", offsetStrings),
+				zap.String("offsetStrings[0]", offsetStrings[0]))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = json.Marshal(result)
+			_, _ = w.Write(bs)
+			return
+		}
 		offset = offsetInt
 	}
 
 	byStrings := params["by"]
 	var by string
-	if len(by) == 0 {
+	if len(byStrings) == 0 {
 		by = entities.ByCreatedAt
 	} else {
 		by = byStrings[0]
@@ -169,49 +164,19 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 // @Router /get_ad [get]
 func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	result := entities.GetAdAnswer{Status: "error"}
-	// var api entities.GetAdAPI
 	vars := mux.Vars(r)
-	idx, ok := vars["id"]
+	idx := vars["id"]
 	var bs []byte
-	if !ok {
-		hf.logger.Error("there is not id in getId")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-	id, err := strconv.Atoi(idx)
-	if err != nil {
-		hf.logger.Error("error during casting idx to int in getId", zap.Error(err))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-	if id < 1 {
-		hf.logger.Error("id is less than 1 in getId", zap.Int("id", id))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
+	id, _ := strconv.Atoi(idx)
 
 	var fields = make([]string, 0)
-	for _, field := range r.URL.Query()["status"] {
+	for _, field := range r.URL.Query()["fields"] {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 		fields = append(fields, field)
-	}
-
-	if err != nil {
-		hf.logger.Error("error during validating in getAd", zap.Error(err))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
 	}
 
 	item, err := hf.dbClient.GetAd(id)

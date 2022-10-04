@@ -40,14 +40,15 @@ type App struct {
 func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
 	logic := facade.NewHandlerFacade(client, v, logger)
 
-	r := mux.NewRouter()
-
 	getAdHandler, _ := logic.GetHandler("get_ad")
 	listAdsHandler, _ := logic.GetHandler("list_ads")
 	createAdHandler, _ := logic.GetHandler("create_ad")
+
+	r := mux.NewRouter()
+
 	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
 	r.HandleFunc("/ads", createAdHandler).Methods("POST")
-	r.HandleFunc("/ads/{id}", getAdHandler).Methods("GET")
+	r.HandleFunc("/ads/{id:[0-9]+}", getAdHandler).Methods("GET")
 
 	a := &App{r: r, logger: logger}
 	return a
