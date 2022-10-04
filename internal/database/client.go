@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 
-	"golang-test-task/entities"
+	"golang-test-task/internal/entities"
 
 	"gorm.io/gorm"
 )

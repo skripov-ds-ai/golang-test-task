@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	"golang-test-task/database"
-	"golang-test-task/facade"
+	"golang-test-task/internal/database"
+	"golang-test-task/internal/facade"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/go-playground/validator/v10"
@@ -27,6 +29,37 @@ import (
 
 // @Host localhost:8888
 // @BasePath /api/v0.1
+
+// App is wrapper to simplify app creating
+type App struct {
+	r      *mux.Router
+	logger *zap.Logger
+}
+
+// NewApp creates an app
+func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
+	logic := facade.NewHandlerFacade(client, v, logger)
+
+	r := mux.NewRouter()
+
+	getAdHandler, _ := logic.GetHandler("get_ad")
+	listAdsHandler, _ := logic.GetHandler("list_ads")
+	createAdHandler, _ := logic.GetHandler("create_ad")
+	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
+	r.HandleFunc("/ads", createAdHandler).Methods("POST")
+	r.HandleFunc("/ads/{id}", getAdHandler).Methods("GET")
+
+	a := &App{r: r, logger: logger}
+	return a
+}
+
+// Run is need to run an app
+func (a *App) Run() {
+	err := http.ListenAndServe(":3000", a.r)
+	if err != nil {
+		a.logger.Panic("not nil serving", zap.Error(err))
+	}
+}
 
 func main() {
 	config := zap.NewDevelopmentConfig()
@@ -91,20 +124,6 @@ func main() {
 	}
 
 	client := database.NewClient(db)
-	logic := facade.NewHandlerFacade(client, v, logger)
-
-	mux := http.NewServeMux()
-	endpoints := []string{"create_ad", "get_ad", "list_ads"}
-	for _, endpoint := range endpoints {
-		path := fmt.Sprintf("/api/v%s/%s", apiVersion, endpoint)
-		if h, ok := logic.GetHandler(endpoint); ok {
-			mux.HandleFunc(path, h)
-		} else {
-			logger.Warn("handler endpoint does not contain in logic", zap.String("endpoint", endpoint))
-		}
-	}
-	err = http.ListenAndServe(":3000", mux)
-	if err != nil {
-		logger.Panic("not nil serving", zap.Error(err))
-	}
+	app := NewApp(client, v, logger)
+	app.Run()
 }

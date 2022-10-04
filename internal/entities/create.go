@@ -12,7 +12,7 @@ type CreateAdAnswer struct {
 // AdJSONItem contains the information to write to AdItem table
 type AdJSONItem struct {
 	Title       string          `json:"title" validate:"required,min=1,max=200"`
-	Description string          `json:"description" validate:"required,max=1000"`
+	Description string          `json:"description" validate:"max=1000"`
 	Price       decimal.Decimal `json:"price" validate:"required,numeric"`
-	ImageURLs   []string        `json:"image_urls" validate:"required,max=3,checkURL"`
+	ImageURLs   []string        `json:"image_urls" validate:"max=3,checkURL"`
 }
