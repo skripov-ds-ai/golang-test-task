@@ -5,13 +5,13 @@ ENV GO111MODULE=on
 
 WORKDIR /usr/src/app
 RUN mkdir bin
-COPY ../../go.mod .
-COPY ../../go.sum .
+COPY go.mod .
+COPY go.sum .
 
 RUN go mod download
 
 COPY ../.. .
-RUN go build -o bin/app main.go
+RUN go build -o bin/app cmd/crud/main.go
 
 FROM alpine:latest
 RUN apk add ca-certificates
