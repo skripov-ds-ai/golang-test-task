@@ -13,6 +13,7 @@
 ## Как запустить
 0. Установить Docker и [Docker-Compose](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04-ru)
 1. `docker-compose build && docker-compose up -d`
+2. Таблицы создаются через `gorm` внутри `app`, БД создается пустой.
 
 ## API
 Address: `http://localhost:8888`
