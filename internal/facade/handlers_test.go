@@ -8,6 +8,7 @@ import (
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
@@ -15,6 +16,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-playground/validator/v10"
@@ -44,6 +47,7 @@ type HandlerFacadeTestSuite struct {
 	client *database.Client
 	logger *zap.Logger
 	logic  *HandlerFacade
+	r      *mux.Router
 }
 
 func (suite *HandlerFacadeTestSuite) SetupSuite() {
@@ -98,6 +102,16 @@ func (suite *HandlerFacadeTestSuite) TearDownSuite() {
 
 func (suite *HandlerFacadeTestSuite) SetupTest() {
 	suite.logic = NewHandlerFacade(suite.client, suite.v, suite.logger)
+
+	getAdHandler, _ := suite.logic.GetHandler("get_ad")
+	listAdsHandler, _ := suite.logic.GetHandler("list_ads")
+	createAdHandler, _ := suite.logic.GetHandler("create_ad")
+
+	suite.r = mux.NewRouter()
+
+	suite.r.HandleFunc("/ads/{id:[0-9]+}", getAdHandler).Methods("GET")
+	suite.r.HandleFunc("/ads", listAdsHandler).Methods("GET")
+	suite.r.HandleFunc("/ads", createAdHandler).Methods("POST")
 }
 
 func (suite *HandlerFacadeTestSuite) TestCreateAd() {
@@ -119,9 +133,7 @@ func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 	}()
 
 	h, _ := suite.logic.GetHandler("create_ad")
-	// svr := httptest.NewServer(http.HandlerFunc(h))
-	// defer svr.Close()
-	//
+
 	bs, err := json.Marshal(item)
 	if err != nil {
 		suite.T().Fatalf("err during Marshal item; item = %v ; err = %v", item, err)
@@ -131,6 +143,10 @@ func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 
 	h(res, req)
 	resp := res.Result()
+	if resp.StatusCode != http.StatusOK {
+		suite.T().Fatalf("resp.StatusCode != 200; resp.StatusCode = %d", resp.StatusCode)
+	}
+
 	body, _ := io.ReadAll(resp.Body)
 	var actualResult entities.CreateAdAnswer
 	_ = json.Unmarshal(body, &actualResult)
@@ -138,6 +154,100 @@ func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 	if !reflect.DeepEqual(actualResult, expectedResult) {
 		suite.T().Fatalf("actualResult != expectedResult; actualResult = %v ; expectedResult = %v",
 			actualResult, expectedResult)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestCreateAdInvalidStruct() {
+	item := entities.AdJSONItem{Price: decimal.NewFromInt32(0)}
+
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	h, _ := suite.logic.GetHandler("create_ad")
+
+	bs, err := json.Marshal(item)
+	if err != nil {
+		suite.T().Fatalf("err during Marshal item; item = %v ; err = %v", item, err)
+	}
+	req := httptest.NewRequest("POST", "/ads", bytes.NewBuffer(bs))
+	res := httptest.NewRecorder()
+
+	h(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestCreateAdDBError() {
+	item := entities.AdJSONItem{Title: "title", Price: decimal.NewFromInt32(0)}
+	(*suite.mock).ExpectCommit()
+
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	h, _ := suite.logic.GetHandler("create_ad")
+
+	bs, err := json.Marshal(item)
+	if err != nil {
+		suite.T().Fatalf("err during Marshal item; item = %v ; err = %v", item, err)
+	}
+	req := httptest.NewRequest("POST", "/ads", bytes.NewBuffer(bs))
+	res := httptest.NewRecorder()
+
+	h(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		suite.T().Fatalf("resp.StatusCode != 500; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestGetAdNotFound() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	// h, _ := suite.logic.GetHandler("get_ad")
+
+	req := httptest.NewRequest("GET", "/ads/problem/", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusNotFound {
+		suite.T().Fatalf("resp.StatusCode != 404; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestGetAdNegativeID() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads/-1", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusNotFound {
+		suite.T().Fatalf("resp.StatusCode != 404; resp.StatusCode = %d", resp.StatusCode)
+	}
+}
+
+func (suite *HandlerFacadeTestSuite) TestGetAdInvalidFields() {
+	defer func() {
+		_ = suite.logger.Sync()
+	}()
+
+	req := httptest.NewRequest("GET", "/ads/1?fields=wrong", nil)
+	res := httptest.NewRecorder()
+
+	suite.r.ServeHTTP(res, req)
+	resp := res.Result()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 	}
 }
 

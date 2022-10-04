@@ -169,49 +169,19 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 // @Router /get_ad [get]
 func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	result := entities.GetAdAnswer{Status: "error"}
-	// var api entities.GetAdAPI
 	vars := mux.Vars(r)
-	idx, ok := vars["id"]
+	idx := vars["id"]
 	var bs []byte
-	if !ok {
-		hf.logger.Error("there is not id in getId")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-	id, err := strconv.Atoi(idx)
-	if err != nil {
-		hf.logger.Error("error during casting idx to int in getId", zap.Error(err))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
-	if id < 1 {
-		hf.logger.Error("id is less than 1 in getId", zap.Int("id", id))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
+	id, _ := strconv.Atoi(idx)
 
 	var fields = make([]string, 0)
-	for _, field := range r.URL.Query()["status"] {
+	for _, field := range r.URL.Query()["fields"] {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 		fields = append(fields, field)
-	}
-
-	if err != nil {
-		hf.logger.Error("error during validating in getAd", zap.Error(err))
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
 	}
 
 	item, err := hf.dbClient.GetAd(id)
