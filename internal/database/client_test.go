@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql/driver"
-	"golang-test-task/entities"
+	"golang-test-task/internal/entities"
 	"regexp"
 	"strconv"
 	"testing"

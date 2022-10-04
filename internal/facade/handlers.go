@@ -2,8 +2,8 @@ package facade
 
 import (
 	"encoding/json"
-	"golang-test-task/entities"
 	"golang-test-task/internal/database"
+	"golang-test-task/internal/entities"
 	"io"
 	"net/http"
 	"strconv"

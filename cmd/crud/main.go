@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"golang-test-task/facade"
-	database2 "golang-test-task/internal/database"
+	"golang-test-task/internal/database"
+	"golang-test-task/internal/facade"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,12 +87,12 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	err = db.AutoMigrate(&database2.AdItem{}, &database2.ImageURL{})
+	err = db.AutoMigrate(&database.AdItem{}, &database.ImageURL{})
 	if err != nil {
 		logger.Panic("failed to automigrate", zap.Error(err))
 	}
 
-	client := database2.NewClient(db)
+	client := database.NewClient(db)
 	logic := facade.NewHandlerFacade(client, v, logger)
 
 	r := mux.NewRouter()
