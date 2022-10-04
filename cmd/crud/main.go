@@ -30,11 +30,13 @@ import (
 // @Host localhost:8888
 // @BasePath /api/v0.1
 
+// App is wrapper to simplify app creating
 type App struct {
 	r      *mux.Router
 	logger *zap.Logger
 }
 
+// NewApp creates an app
 func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
 	logic := facade.NewHandlerFacade(client, v, logger)
 
@@ -51,6 +53,7 @@ func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) 
 	return a
 }
 
+// Run is need to run an app
 func (a *App) Run() {
 	err := http.ListenAndServe(":3000", a.r)
 	if err != nil {

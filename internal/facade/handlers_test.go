@@ -5,16 +5,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/go-playground/validator/v10"
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"io"
 	"net/http/httptest"
 	"net/url"
@@ -23,6 +15,15 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // AnyTime is mock for time
@@ -118,8 +119,8 @@ func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 	}()
 
 	h, _ := suite.logic.GetHandler("create_ad")
-	//svr := httptest.NewServer(http.HandlerFunc(h))
-	//defer svr.Close()
+	// svr := httptest.NewServer(http.HandlerFunc(h))
+	// defer svr.Close()
 	//
 	bs, err := json.Marshal(item)
 	if err != nil {

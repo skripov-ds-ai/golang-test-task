@@ -1,15 +1,10 @@
 package main
 
-import (
-	"net/http"
-	"net/http/httptest"
-)
-
-func (a *App) executeRequest(req *http.Request) *httptest.ResponseRecorder {
-	res := httptest.NewRecorder()
-	a.r.ServeHTTP(res, req)
-	return res
-}
+// func (a *App) executeRequest(req *http.Request) *httptest.ResponseRecorder {
+//	res := httptest.NewRecorder()
+//	a.r.ServeHTTP(res, req)
+//	return res
+// }
 
 // import (
 //	"bytes"
