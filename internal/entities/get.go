@@ -2,8 +2,8 @@ package entities
 
 import "github.com/shopspring/decimal"
 
-// GetAdAnswer couples a status of processing and a request's result
 type (
+	// GetAdAnswer couples a status of processing and a request's result
 	GetAdAnswer struct {
 		Status string     `json:"status"`
 		Result *APIAdItem `json:"result"`

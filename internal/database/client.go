@@ -33,7 +33,7 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 }
 
 // ListAds gives list of items
-func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []AdListItem, err error) {
+func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []*AdListItem, err error) {
 	var items []*AdListItem
 	ascOrDesc := "asc"
 	if !asc {
@@ -45,10 +45,7 @@ func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resIt
 	if err != nil {
 		return resItems, err
 	}
-	for _, v := range items {
-		resItems = append(resItems, *v)
-	}
-	return resItems, nil
+	return items, nil
 }
 
 // CreateAd creates an item

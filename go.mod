@@ -10,6 +10,7 @@ require (
 	github.com/mailru/easyjson v0.7.7
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.0
+	github.com/valyala/fasthttp v1.6.0
 	go.uber.org/zap v1.23.0
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	gorm.io/driver/postgres v1.3.9
@@ -31,9 +32,11 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/klauspost/compress v1.9.7 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect

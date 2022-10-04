@@ -11,10 +11,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

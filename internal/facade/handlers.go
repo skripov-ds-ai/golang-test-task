@@ -2,13 +2,14 @@ package facade
 
 import (
 	"fmt"
-	"github.com/mailru/easyjson"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/mailru/easyjson"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
@@ -183,8 +184,9 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	var bs []byte
 	id, _ := strconv.Atoi(idx)
 
+	queryFields := r.URL.Query()["fields"]
 	var fields = make([]string, 0)
-	for _, field := range r.URL.Query()["fields"] {
+	for _, field := range queryFields {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
 			w.WriteHeader(http.StatusUnprocessableEntity)
@@ -192,11 +194,13 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 		}
 		fields = append(fields, field)
 	}
-	ok := sort.SliceIsSorted(fields, func(i, j int) bool {
-		return fields[i] < fields[j]
-	})
-	if !ok {
-		sort.Strings(fields)
+	if len(fields) > 0 {
+		ok := sort.SliceIsSorted(fields, func(i, j int) bool {
+			return fields[i] < fields[j]
+		})
+		if !ok {
+			sort.Strings(fields)
+		}
 	}
 	workHash := fmt.Sprintf("ad:%d:%v", id, fields)
 
@@ -241,7 +245,7 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
 	var item entities.AdJSONItem
-	//err := json.Unmarshal(bs, &item)
+	// err := json.Unmarshal(bs, &item)
 	err := easyjson.Unmarshal(bs, &item)
 	if err != nil {
 		hf.logger.Error("error during Unmarshal in createAd", zap.Error(err))
@@ -250,6 +254,7 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 		_, _ = w.Write(bs)
 		return
 	}
+
 	err = hf.validator.Struct(item)
 	if err != nil {
 		hf.logger.Error("error during validating in createAd", zap.Error(err))
