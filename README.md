@@ -56,7 +56,7 @@ curl POST -v -d "{
 ### 2. Получить объявление по ID(`/get_ad`)
 Пример запроса:
 ```shell
-curl -X GET -d "http://localhost:8888/v0.1/get_ad/1?fields=description&fields=image_urls"
+curl -X GET "http://localhost:8888/v0.1/get_ad/1?fields=description&fields=image_urls"
 ```
 Примеры успешных ответов:
 ```json
