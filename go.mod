@@ -7,9 +7,11 @@ require (
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/gorilla/mux v1.8.0
+	github.com/mailru/easyjson v0.7.7
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	gorm.io/driver/postgres v1.3.9
 	gorm.io/gorm v1.23.9
 )
@@ -28,6 +30,7 @@ require (
 	github.com/jackc/pgx/v4 v4.17.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

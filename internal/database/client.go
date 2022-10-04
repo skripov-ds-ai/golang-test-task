@@ -33,8 +33,8 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 }
 
 // ListAds gives list of items
-func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
-	var items []*AdAPIListItem
+func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []AdListItem, err error) {
+	var items []*AdListItem
 	ascOrDesc := "asc"
 	if !asc {
 		ascOrDesc = "desc"
