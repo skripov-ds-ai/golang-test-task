@@ -18,11 +18,11 @@
 Address: `http://localhost:8888`
 Prefix: `/api/v0.1`
 
-| Endpoint | Method | Description                                |
-| ---   | ------------- |--------------------------------------------|
-| `/create_ad` | `POST` | Создание объявления |                       
-| `/get_ad` | `GET` | Получение объявления |                      
-| `/list_ads` | `GET` | Получение списка объявлений(для пагинции)  |
+| Endpoint    | Method | Description                                |
+|-------------| ------------- |--------------------------------------------|
+| `/ads`      | `POST` | Создание объявления |                       
+| `/ads`      | `GET` | Получение списка объявлений(для пагинции)  |
+| `/ads/{id}` | `GET` | Получение объявления |                      
 
 ## Примеры использования
 ### 1. Создать объявление(`/create_ad`)
@@ -55,10 +55,7 @@ curl POST -v -d "{
 ### 2. Получить объявление по ID(`/get_ad`)
 Пример запроса:
 ```shell
-curl -X GET -d "{
-  \"id\": 1,
-  \"fields\": [\"description\", \"image_urls\"]
-}" "http://localhost:8888/v0.1/get_ad/"
+curl -X GET -d "http://localhost:8888/v0.1/get_ad/1?fields=description&fields=image_urls"
 ```
 Примеры успешных ответов:
 ```json
@@ -74,7 +71,7 @@ curl -X GET -d "{
   }
 }
 ```
-
+Или:
 ```json
 {
   "status": "success",
@@ -100,11 +97,7 @@ curl -X GET -d "{
 ### 3.1. Получить список объявлений для пагинации(вторые 10 объявлений с сортировкой по дате по возрастанию, в случае 13 объявлений в БД)
 Пример запроса:
 ```shell
-curl -X GET -d "{
-  \"by\": \"created_at\",
-  \"asc\": true,
-  \"offset\": 10
-}" "http://localhost:8888/v0.1/list_ads"
+curl -X GET "http://localhost:8888/v0.1/list_ads?by=created_at&asc=true&offset=10"
 ```
 Пример ответа:
 ```json
@@ -142,11 +135,7 @@ curl -X GET -d "{
 ### 3.2. Получить список объявлений для пагинации(первые 10 объявлений с сортировкой по цене по убыванию)
 Пример запроса:
 ```shell
-curl -X GET -d "{
-  \"by\": \"created_at\",
-  \"asc\": true,
-  \"offset\": 10
-}" "http://localhost:8888/v0.1/list_ads"
+curl -X GET "http://localhost:8888/v0.1/list_ads?by=price&asc=false"
 ```
 Пример ответа:
 ```json

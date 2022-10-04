@@ -6,8 +6,10 @@ import (
 	"golang-test-task/entities"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -29,8 +31,8 @@ func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, 
 	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
 	facade.handlers = make(map[string]handler)
 	facade.handlers["create_ad"] = facade.checkMethod("POST", facade.readAllWrap(facade.createAd))
-	facade.handlers["get_ad"] = facade.checkMethod("GET", facade.readAllWrap(facade.getAd))
-	facade.handlers["list_ads"] = facade.checkMethod("GET", facade.readAllWrap(facade.listAds))
+	facade.handlers["get_ad"] = facade.checkMethod("GET", facade.getAd)
+	facade.handlers["list_ads"] = facade.checkMethod("GET", facade.listAds)
 	return &facade
 }
 
@@ -77,33 +79,67 @@ func (hf *HandlerFacade) checkMethod(method string, h handler) handler {
 // TODO: add pagination size to params
 // @Accept  json
 // @Description An endpoint to get item list for pagination
-// @Failure 400 {object} entities.ListAdsAnswer{}
+// @Failure 422 {object} entities.ListAdsAnswer{}
 // @Failure 500 {object} entities.ListAdsAnswer{}
 // @Success 200 {object} entities.ListAdsAnswer{}
 // @Router /list_ads [get]
-func (hf *HandlerFacade) listAds(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
+	var bs []byte
 	result := entities.ListAdsAnswer{Status: "error"}
-	var pag entities.Pagination
-	err := json.Unmarshal(bs, &pag)
-	if err != nil {
-		hf.logger.Error("error during Unmarshal in listAds", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+
+	params := r.URL.Query()
+	offsetStrings := params["offset"]
+
+	var offset int
+	if len(offsetStrings) > 0 {
+		offsetInt, err := strconv.Atoi(offsetStrings[0])
+		if err != nil {
+			hf.logger.Error(
+				"cannot cast offset to int in listAds",
+				zap.Error(err), zap.Strings("offsetStrings", offsetStrings),
+				zap.String("offsetStrings[0]", offsetStrings[0]))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = json.Marshal(result)
+			_, _ = w.Write(bs)
+			return
+		}
+		offset = offsetInt
+	}
+
+	byStrings := params["by"]
+	var by string
+	if len(by) == 0 {
+		by = entities.ByCreatedAt
+	} else {
+		by = byStrings[0]
+	}
+	if by != entities.ByCreatedAt && by != entities.ByPrice {
+		hf.logger.Error("incorrect by param in listAds",
+			zap.Strings("byStrings", byStrings))
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	err = hf.validator.Struct(pag)
-	if err != nil {
-		hf.logger.Error("error during validating in listAds", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		bs, _ = json.Marshal(result)
-		_, _ = w.Write(bs)
-		return
+	ascStrings := params["asc"]
+	var asc = true
+	if len(ascStrings) > 0 {
+		ascBool, err := strconv.ParseBool(ascStrings[0])
+		if err != nil {
+			hf.logger.Error(
+				"cannot cast asc to bool in listAds",
+				zap.Error(err), zap.Strings("ascStrings", ascStrings),
+				zap.String("ascStrings[0]", ascStrings[0]))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = json.Marshal(result)
+			_, _ = w.Write(bs)
+			return
+		}
+		asc = ascBool
 	}
 
-	// TODO: make paginationSize customizable
-	items, err := hf.dbClient.ListAds(pag.Offset, entities.PaginationSize, pag.By, pag.Asc)
+	items, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
 	if err != nil {
 		hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -127,32 +163,58 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, bs []byte) {
 // additional: by parameter `fields`(description, photo_urls)
 // @Accept  json
 // @Description An endpoint to get item by id
-// @Failure 400 {object} entities.GetAdAnswer{}
+// @Failure 422 {object} entities.GetAdAnswer{}
 // @Failure 500 {object} entities.GetAdAnswer{}
 // @Success 200 {object} entities.GetAdAnswer{}
 // @Router /get_ad [get]
-func (hf *HandlerFacade) getAd(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	result := entities.GetAdAnswer{Status: "error"}
-	var api entities.GetAdAPI
-	err := json.Unmarshal(bs, &api)
+	// var api entities.GetAdAPI
+	vars := mux.Vars(r)
+	idx, ok := vars["id"]
+	var bs []byte
+	if !ok {
+		hf.logger.Error("there is not id in getId")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		bs, _ = json.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+	}
+	id, err := strconv.Atoi(idx)
 	if err != nil {
-		hf.logger.Error("error during Unmarshal in getAd", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		hf.logger.Error("error during casting idx to int in getId", zap.Error(err))
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		bs, _ = json.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+	}
+	if id < 1 {
+		hf.logger.Error("id is less than 1 in getId", zap.Int("id", id))
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	err = hf.validator.Struct(api)
+	var fields = make([]string, 0)
+	for _, field := range r.URL.Query()["status"] {
+		if field != "description" && field != "image_urls" {
+			hf.logger.Error("field is not acceptable", zap.String("field", field))
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		fields = append(fields, field)
+	}
+
 	if err != nil {
 		hf.logger.Error("error during validating in getAd", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	item, err := hf.dbClient.GetAd(api.ID)
+	item, err := hf.dbClient.GetAd(id)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		hf.logger.Error("error during dbClient.getAd in getAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -162,7 +224,7 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, bs []byte) {
 	}
 	result.Status = "success"
 	if item != nil {
-		m := item.CreateMap(api.Fields)
+		m := item.CreateMap(fields)
 		result.Result = &m
 	}
 
@@ -176,7 +238,7 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, bs []byte) {
 // Return: ID of new ad, code of a result
 // @Accept  json
 // @Description An endpoint to create item
-// @Failure 400 {object} entities.CreateAdAnswer{}
+// @Failure 422 {object} entities.CreateAdAnswer{}
 // @Failure 500 {object} entities.CreateAdAnswer{}
 // @Success 200 {object} entities.CreateAdAnswer{}
 // @Router /create_ad [post]
@@ -194,7 +256,7 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 	err = hf.validator.Struct(item)
 	if err != nil {
 		hf.logger.Error("error during validating in createAd", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		bs, _ = json.Marshal(result)
 		_, _ = w.Write(bs)
 		return

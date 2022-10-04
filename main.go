@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
@@ -93,17 +95,16 @@ func main() {
 	client := database.NewClient(db)
 	logic := facade.NewHandlerFacade(client, v, logger)
 
-	mux := http.NewServeMux()
-	endpoints := []string{"create_ad", "get_ad", "list_ads"}
-	for _, endpoint := range endpoints {
-		path := fmt.Sprintf("/api/v%s/%s", apiVersion, endpoint)
-		if h, ok := logic.GetHandler(endpoint); ok {
-			mux.HandleFunc(path, h)
-		} else {
-			logger.Warn("handler endpoint does not contain in logic", zap.String("endpoint", endpoint))
-		}
-	}
-	err = http.ListenAndServe(":3000", mux)
+	r := mux.NewRouter()
+
+	getAdHandler, _ := logic.GetHandler("get_ad")
+	listAdsHandler, _ := logic.GetHandler("list_ads")
+	createAdHandler, _ := logic.GetHandler("create_ad")
+	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
+	r.HandleFunc("/ads", createAdHandler).Methods("POST")
+	r.HandleFunc("/ads/{id}", getAdHandler).Methods("GET")
+
+	err = http.ListenAndServe(":3000", r)
 	if err != nil {
 		logger.Panic("not nil serving", zap.Error(err))
 	}
