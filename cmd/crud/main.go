@@ -5,14 +5,15 @@ import (
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/facade"
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"os"
+	"runtime"
 	"time"
-
-	"github.com/gorilla/mux"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -32,12 +33,12 @@ import (
 
 // App is wrapper to simplify app creating
 type App struct {
-	r      *mux.Router
+	Router *mux.Router
 	logger *zap.Logger
 }
 
 // NewApp creates an app
-func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
+func NewApp(version string, client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
 	logic := facade.NewHandlerFacade(client, v, logger)
 
 	getAdHandler, _ := logic.GetHandler("get_ad")
@@ -46,23 +47,37 @@ func NewApp(client *database.Client, v *validator.Validate, logger *zap.Logger) 
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/ads", listAdsHandler).Methods("GET")
-	r.HandleFunc("/ads", createAdHandler).Methods("POST")
-	r.HandleFunc("/ads/{id:[0-9]+}", getAdHandler).Methods("GET")
+	r.HandleFunc("/debug/pprof/", pprof.Index)
+	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	r.Handle("/debug/pprof/block", pprof.Handler("block"))
+	r.Handle("/debug/vars", http.DefaultServeMux)
 
-	a := &App{r: r, logger: logger}
+	apiRouter := r.PathPrefix(fmt.Sprintf("/api/v%s", version)).Subrouter()
+	apiRouter.HandleFunc("/ads", listAdsHandler).Methods("GET")
+	apiRouter.HandleFunc("/ads", createAdHandler).Methods("POST")
+	apiRouter.HandleFunc("/ads/{id:[0-9]+}", getAdHandler).Methods("GET")
+
+	a := &App{Router: r, logger: logger}
 	return a
 }
 
 // Run is need to run an app
 func (a *App) Run() {
-	err := http.ListenAndServe(":3000", a.r)
+	err := http.ListenAndServe(":3000", a.Router)
 	if err != nil {
 		a.logger.Panic("not nil serving", zap.Error(err))
 	}
 }
 
 func main() {
+	runtime.GOMAXPROCS(4)
+
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	logger, _ := config.Build(zap.Hooks(func(entry zapcore.Entry) error {
@@ -124,7 +139,15 @@ func main() {
 		logger.Panic("failed to automigrate", zap.Error(err))
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		logger.Panic("failed to get DB from gorm", zap.Error(err))
+	}
+	sqlDB.SetMaxIdleConns(100)
+	sqlDB.SetMaxOpenConns(200)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	client := database.NewClient(db)
-	app := NewApp(client, v, logger)
+	app := NewApp(apiVersion, client, v, logger)
 	app.Run()
 }

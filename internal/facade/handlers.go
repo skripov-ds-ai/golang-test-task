@@ -1,26 +1,31 @@
 package facade
 
 import (
-	"encoding/json"
+	"fmt"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
+
+	"github.com/mailru/easyjson"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 )
 
 type (
 	// HandlerFacade is helper struct for getting handlers and hiding inner logic of an app
 	HandlerFacade struct {
-		dbClient  *database.Client
-		validator *validator.Validate
-		logger    *zap.Logger
-		handlers  map[string]handler
+		dbClient     *database.Client
+		validator    *validator.Validate
+		logger       *zap.Logger
+		handlers     map[string]handler
+		singleflight *singleflight.Group
 	}
 	handler   func(w http.ResponseWriter, r *http.Request)
 	handlerBs func(w http.ResponseWriter, bs []byte)
@@ -33,6 +38,7 @@ func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, 
 	facade.handlers["create_ad"] = facade.readAllWrap(facade.createAd)
 	facade.handlers["get_ad"] = facade.getAd
 	facade.handlers["list_ads"] = facade.listAds
+	facade.singleflight = &singleflight.Group{}
 	return &facade
 }
 
@@ -47,9 +53,8 @@ func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 		bs, err := io.ReadAll(r.Body)
 		if err != nil {
 			hf.logger.Error("error during ReadAll")
-			result := make(map[string]interface{})
-			result["status"] = "error"
-			bs, _ = json.Marshal(result)
+			result := entities.GetAdAnswer{Status: "error"}
+			bs, _ = easyjson.Marshal(result)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(bs)
 			return
@@ -84,7 +89,7 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 				zap.Error(err), zap.Strings("offsetStrings", offsetStrings),
 				zap.String("offsetStrings[0]", offsetStrings[0]))
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			bs, _ = json.Marshal(result)
+			bs, _ = easyjson.Marshal(result)
 			_, _ = w.Write(bs)
 			return
 		}
@@ -94,7 +99,7 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 				zap.Error(err), zap.Strings("offsetStrings", offsetStrings),
 				zap.String("offsetStrings[0]", offsetStrings[0]))
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			bs, _ = json.Marshal(result)
+			bs, _ = easyjson.Marshal(result)
 			_, _ = w.Write(bs)
 			return
 		}
@@ -112,7 +117,7 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 		hf.logger.Error("incorrect by param in listAds",
 			zap.Strings("byStrings", byStrings))
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
@@ -127,28 +132,29 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 				zap.Error(err), zap.Strings("ascStrings", ascStrings),
 				zap.String("ascStrings[0]", ascStrings[0]))
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			bs, _ = json.Marshal(result)
+			bs, _ = easyjson.Marshal(result)
 			_, _ = w.Write(bs)
 			return
 		}
 		asc = ascBool
 	}
 
-	items, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
+	itms, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
 	if err != nil {
 		hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 
-	itms := make([]map[string]interface{}, len(items))
-	for i, v := range items {
-		itms[i] = v.CreateMap()
+	readyItems := make([]entities.APIAdListItem, len(itms))
+	for i, v := range itms {
+		readyItems[i] = v.CreateMap()
 	}
-	result.Result = itms
-	bs, _ = json.Marshal(result)
+
+	result.Result = readyItems
+	bs, _ = easyjson.Marshal(result)
 	_, _ = w.Write(bs)
 }
 
@@ -169,31 +175,53 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	var bs []byte
 	id, _ := strconv.Atoi(idx)
 
+	queryFields := r.URL.Query()["fields"]
 	var fields = make([]string, 0)
-	for _, field := range r.URL.Query()["fields"] {
+	for _, field := range queryFields {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
 			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = easyjson.Marshal(result)
+			_, _ = w.Write(bs)
 			return
 		}
 		fields = append(fields, field)
 	}
+	if len(fields) > 0 {
+		ok := sort.SliceIsSorted(fields, func(i, j int) bool {
+			return fields[i] < fields[j]
+		})
+		if !ok {
+			sort.Strings(fields)
+		}
+	}
+	workHash := fmt.Sprintf("ad:%d:%v", id, fields)
 
-	item, err := hf.dbClient.GetAd(id)
+	res, err, _ := hf.singleflight.Do(workHash, func() (interface{}, error) {
+		itm, err := hf.dbClient.GetAd(id)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			hf.logger.Error("error during dbClient.getAd in getAd", zap.Error(err))
+			return nil, err
+		}
+		return itm, nil
+	})
+
 	if err != nil && err != gorm.ErrRecordNotFound {
-		hf.logger.Error("error during dbClient.getAd in getAd", zap.Error(err))
+		hf.logger.Error("error during using singleflight in getAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
+
 	result.Status = "success"
+	item := res.(*database.AdItem)
 	if item != nil {
 		m := item.CreateMap(fields)
 		result.Result = &m
 	}
 
-	bs, _ = json.Marshal(result)
+	bs, _ = easyjson.Marshal(result)
 	_, _ = w.Write(bs)
 }
 
@@ -210,19 +238,21 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
 	var item entities.AdJSONItem
-	err := json.Unmarshal(bs, &item)
+	// err := json.Unmarshal(bs, &item)
+	err := easyjson.Unmarshal(bs, &item)
 	if err != nil {
 		hf.logger.Error("error during Unmarshal in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
+
 	err = hf.validator.Struct(item)
 	if err != nil {
 		hf.logger.Error("error during validating in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
@@ -231,13 +261,13 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 	if err != nil {
 		hf.logger.Error("error during dbClient.createAd in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = json.Marshal(result)
+		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
 		return
 	}
 	result.Status = "success"
 	result.ID = &id
 
-	bs, _ = json.Marshal(result)
+	bs, _ = easyjson.Marshal(result)
 	_, _ = w.Write(bs)
 }

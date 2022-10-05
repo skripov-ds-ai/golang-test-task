@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-
 	"golang-test-task/internal/entities"
 
 	"gorm.io/gorm"
@@ -24,6 +23,10 @@ func NewClient(db *gorm.DB) *Client {
 func (c *Client) GetAd(id int) (res *AdItem, err error) {
 	// TODO: add fields to use in .Select(fields)
 	var item AdItem
+
+	// squirrel.Select("*").From("ad_items").
+	//	Join("image_urls ON ad_items.id=image_urls.")
+
 	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id)
 	err = db.Error
 	if err != nil {
@@ -33,8 +36,8 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 }
 
 // ListAds gives list of items
-func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []AdAPIListItem, err error) {
-	var items []*AdAPIListItem
+func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resItems []*AdListItem, err error) {
+	var items []*AdListItem
 	ascOrDesc := "asc"
 	if !asc {
 		ascOrDesc = "desc"
@@ -45,10 +48,7 @@ func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resIt
 	if err != nil {
 		return resItems, err
 	}
-	for _, v := range items {
-		resItems = append(resItems, *v)
-	}
-	return resItems, nil
+	return items, nil
 }
 
 // CreateAd creates an item
