@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
+	"github.com/gofrs/uuid"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/facade"
+	"log"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
+
+	consulapi "github.com/hashicorp/consul/api"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/go-playground/validator/v10"
@@ -58,6 +63,8 @@ func NewApp(version string, client *database.Client, v *validator.Validate, logg
 	r.Handle("/debug/pprof/block", pprof.Handler("block"))
 	r.Handle("/debug/vars", http.DefaultServeMux)
 
+	r.HandleFunc("/check", check)
+
 	apiRouter := r.PathPrefix(fmt.Sprintf("/api/v%s", version)).Subrouter()
 	apiRouter.HandleFunc("/ads", listAdsHandler).Methods("GET")
 	apiRouter.HandleFunc("/ads", createAdHandler).Methods("POST")
@@ -67,16 +74,72 @@ func NewApp(version string, client *database.Client, v *validator.Validate, logg
 	return a
 }
 
+func check(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Consul check")
+}
+
 // Run is need to run an app
 func (a *App) Run() {
-	err := http.ListenAndServe(":3000", a.Router)
+	err := http.ListenAndServe(getPort(), a.Router)
 	if err != nil {
 		a.logger.Panic("not nil serving", zap.Error(err))
 	}
 }
 
+func getPort() (port string) {
+	port = os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+	port = ":" + port
+	return
+}
+
+func getHostname() (hostname string) {
+	hostname, _ = os.Hostname()
+	return
+}
+
+func serviceRegistryWithConsul() {
+	config := consulapi.DefaultConfig()
+	consul, err := consulapi.NewClient(config)
+	if err != nil {
+		log.Println(err)
+	}
+
+	name := "app"
+	p := getPort()
+	port, _ := strconv.Atoi(p[1:])
+	address := getHostname()
+
+	fmt.Printf(fmt.Sprintf("http://%s:%v/check", address, port))
+	idx, _ := uuid.NewV4()
+	registration := &consulapi.AgentServiceRegistration{
+		ID:      fmt.Sprintf("%s-%s", name, idx.String()),
+		Name:    name,
+		Port:    port,
+		Address: address,
+		Check: &consulapi.AgentServiceCheck{
+			HTTP:     fmt.Sprintf("http://%s:%v/check", address, port),
+			Interval: "10s",
+			Timeout:  "30s",
+		},
+	}
+
+	regiErr := consul.Agent().ServiceRegister(registration)
+
+	if regiErr != nil {
+		log.Printf("Failed to register service: %s:%v ", address, port)
+	} else {
+		log.Printf("successfully register service: %s:%v", address, port)
+	}
+}
+
 func main() {
-	runtime.GOMAXPROCS(4)
+	serviceRegistryWithConsul()
+
+	runtime.GOMAXPROCS(2)
 
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
