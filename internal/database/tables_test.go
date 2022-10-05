@@ -8,7 +8,7 @@ import (
 )
 
 func TestAdAPIListItem_CreateMap(t *testing.T) {
-	item := AdAPIListItem{}
+	item := AdListItem{}
 	var url *string
 	zero := decimal.NewFromInt(0)
 	expected := map[string]interface{}{"id": 0, "main_image_url": url, "title": "", "price": zero}
