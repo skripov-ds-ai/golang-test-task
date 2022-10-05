@@ -139,30 +139,35 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 		asc = ascBool
 	}
 
-	workHash := fmt.Sprintf("list:%d:%s:%t", offset, by, asc)
+	//workHash := fmt.Sprintf("list:%d:%s:%t", offset, by, asc)
 
-	itms, err, _ := hf.singleflight.Do(workHash, func() (interface{}, error) {
-		items, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
+	//itms, err, _ := hf.singleflight.Do(workHash, func() (interface{}, error) {
+		itms, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
 		if err != nil {
 			hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
-			return nil, err
+			w.WriteHeader(http.StatusInternalServerError)
+			bs, _ = easyjson.Marshal(result)
+			_, _ = w.Write(bs)
+			return
+			//return nil, err
 		}
 
-		readyItems := make([]entities.APIAdListItem, len(items))
-		for i, v := range items {
+		readyItems := make([]entities.APIAdListItem, len(itms))
+		for i, v := range itms {
 			readyItems[i] = v.CreateMap()
 		}
-		return readyItems, nil
-	})
-	if err != nil {
-		hf.logger.Error("error during using singleflight in listAds", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = easyjson.Marshal(result)
-		_, _ = w.Write(bs)
-		return
-	}
+		//return readyItems, nil
+	//})
+	//if err != nil {
+	//	hf.logger.Error("error during using singleflight in listAds", zap.Error(err))
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	bs, _ = easyjson.Marshal(result)
+	//	_, _ = w.Write(bs)
+	//	return
+	//}
 
-	result.Result = itms.([]entities.APIAdListItem)
+	//result.Result = itms.([]entities.APIAdListItem)
+	result.Result = readyItems
 	bs, _ = easyjson.Marshal(result)
 	_, _ = w.Write(bs)
 }
