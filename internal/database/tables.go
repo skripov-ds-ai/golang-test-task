@@ -1,8 +1,9 @@
 package database
 
 import (
-	"github.com/shopspring/decimal"
 	"golang-test-task/internal/entities"
+
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -22,9 +23,9 @@ type AdItem struct {
 	Price        decimal.Decimal `sql:"type:decimal(20,8);"`
 	ImageURLs    []ImageURL      `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	MainImageURL *ImageURL       `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	//CreatedAt    time.Time
-	//UpdatedAt    time.Time
-	//DeletedAt    sql.NullTime
+	// CreatedAt    time.Time
+	// UpdatedAt    time.Time
+	// DeletedAt    sql.NullTime
 }
 
 // CreateMap creates map based on fields to show

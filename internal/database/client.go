@@ -24,7 +24,7 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 	// TODO: add fields to use in .Select(fields)
 	var item AdItem
 
-	//squirrel.Select("*").From("ad_items").
+	// squirrel.Select("*").From("ad_items").
 	//	Join("image_urls ON ad_items.id=image_urls.")
 
 	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id)

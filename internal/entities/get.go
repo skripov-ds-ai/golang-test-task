@@ -8,6 +8,8 @@ type (
 		Status string     `json:"status"`
 		Result *APIAdItem `json:"result"`
 	}
+
+	// APIAdItem is a struct to bind data for getAd
 	APIAdItem struct {
 		ID           int             `json:"id"`
 		Title        string          `json:"title"`
