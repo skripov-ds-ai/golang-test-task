@@ -142,21 +142,21 @@ func (hf *HandlerFacade) listAds(w http.ResponseWriter, r *http.Request) {
 	//workHash := fmt.Sprintf("list:%d:%s:%t", offset, by, asc)
 
 	//itms, err, _ := hf.singleflight.Do(workHash, func() (interface{}, error) {
-		itms, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
-		if err != nil {
-			hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
-			w.WriteHeader(http.StatusInternalServerError)
-			bs, _ = easyjson.Marshal(result)
-			_, _ = w.Write(bs)
-			return
-			//return nil, err
-		}
+	itms, err := hf.dbClient.ListAds(offset, entities.PaginationSize, by, asc)
+	if err != nil {
+		hf.logger.Error("error during dbClient.listAds in listAds", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		bs, _ = easyjson.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+		//return nil, err
+	}
 
-		readyItems := make([]entities.APIAdListItem, len(itms))
-		for i, v := range itms {
-			readyItems[i] = v.CreateMap()
-		}
-		//return readyItems, nil
+	readyItems := make([]entities.APIAdListItem, len(itms))
+	for i, v := range itms {
+		readyItems[i] = v.CreateMap()
+	}
+	//return readyItems, nil
 	//})
 	//if err != nil {
 	//	hf.logger.Error("error during using singleflight in listAds", zap.Error(err))
@@ -195,6 +195,8 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
 			w.WriteHeader(http.StatusUnprocessableEntity)
+			bs, _ = easyjson.Marshal(result)
+			_, _ = w.Write(bs)
 			return
 		}
 		fields = append(fields, field)
