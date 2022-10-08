@@ -16,8 +16,16 @@ services:
     depends_on:
       - consul
       - postgres
+      - redis
     networks:
       - big_net
+
+  redis:
+    image: redis:6.0.5-alpine
+    volumes:
+      - redis-data:/data:cached
+    ports:
+      - '6379:6379/tcp'
 
   postgres:
     image: postgres:14.4
@@ -31,8 +39,6 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    networks:
-      - big_net
 
   nginx:
     build:
