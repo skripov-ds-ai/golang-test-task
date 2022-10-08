@@ -11,8 +11,6 @@ services:
       dockerfile: cmd/crud/Dockerfile
       context: ./
     restart: on-failure
-#    ports:
-#      - "8888:3000"
     env_file:
       - cmd/crud/.env
     depends_on:
@@ -36,13 +34,17 @@ services:
     networks:
       - big_net
 
-#  nginx:
-#    build: ./nginx
-#    ports:
-#      - "8080:80"
-#    depends_on:
-#     -  app
-#    restart: on-failure
+  nginx:
+    build:
+      dockerfile: nginx/Dockerfile
+      context: ./
+    ports:
+      - "8080:80"
+    networks:
+      - big_net
+    depends_on:
+      - app
+    restart: on-failure
 
   consul:
     image: consul:latest
