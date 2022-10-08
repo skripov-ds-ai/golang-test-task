@@ -1,7 +1,6 @@
 package facade
 
 import (
-	"fmt"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
@@ -195,16 +194,8 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 			sort.Strings(fields)
 		}
 	}
-	workHash := fmt.Sprintf("ad:%d:%v", id, fields)
 
-	res, err, _ := hf.singleflight.Do(workHash, func() (interface{}, error) {
-		itm, err := hf.dbClient.GetAd(id)
-		if err != nil && err != gorm.ErrRecordNotFound {
-			hf.logger.Error("error during dbClient.getAd in getAd", zap.Error(err))
-			return nil, err
-		}
-		return itm, nil
-	})
+	item, err := hf.dbClient.GetAd(id)
 
 	if err != nil && err != gorm.ErrRecordNotFound {
 		hf.logger.Error("error during using singleflight in getAd", zap.Error(err))
@@ -215,7 +206,6 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result.Status = "success"
-	item := res.(*database.AdItem)
 	if item != nil {
 		m := item.CreateMap(fields)
 		result.Result = &m
