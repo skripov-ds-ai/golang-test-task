@@ -16,6 +16,7 @@ type RedisClient struct {
 	duration   time.Duration
 }
 
+// NewRedisClientForTest is constructor for testing
 func NewRedisClientForTest(client *redis.Client) *RedisClient {
 	return &RedisClient{client: client, maxRetries: 10, duration: 5 * time.Minute}
 }
@@ -37,6 +38,7 @@ func NewRedisClient(ctx context.Context, config RedisConfig) *RedisClient {
 	return &RedisClient{client: client, maxRetries: maxRetries, duration: duration}
 }
 
+// FindItemValue gives cached item
 func (r *RedisClient) FindItemValue(ctx context.Context, key string) (*entities.APIAdItem, error) {
 	v, err := r.client.Get(ctx, key).Result()
 	if err != nil {
@@ -53,6 +55,7 @@ func (r *RedisClient) FindItemValue(ctx context.Context, key string) (*entities.
 	return &itm, nil
 }
 
+// SetItemValue setting item to cache
 func (r *RedisClient) SetItemValue(ctx context.Context, key string, item entities.APIAdItem) error {
 	bs, err := easyjson.Marshal(item)
 	if err != nil {
@@ -62,6 +65,7 @@ func (r *RedisClient) SetItemValue(ctx context.Context, key string, item entitie
 	return err
 }
 
+// GetDuration gives duration of key
 func (r *RedisClient) GetDuration() time.Duration {
 	return r.duration
 }

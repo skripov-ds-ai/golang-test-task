@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gofrs/uuid"
 	"golang-test-task/internal/cache"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/facade"
@@ -15,6 +14,8 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/gofrs/uuid"
 
 	consulapi "github.com/hashicorp/consul/api"
 
@@ -115,7 +116,6 @@ func serviceRegistryWithConsul() {
 	port, _ := strconv.Atoi(p[1:])
 	address := getHostname()
 
-	fmt.Printf(fmt.Sprintf("http://%s:%v/check", address, port))
 	idx, _ := uuid.NewV4()
 	registration := &consulapi.AgentServiceRegistration{
 		ID:      fmt.Sprintf("%s-%s", name, idx.String()),
