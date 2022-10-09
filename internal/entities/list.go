@@ -14,7 +14,7 @@ const (
 type (
 	// ListAdsAnswer combine a status of a list process and a result
 	ListAdsAnswer struct {
-		Status string          `json:"status"`
+		Status ResultStatus    `json:"status"`
 		Result []APIAdListItem `json:"result"`
 	}
 

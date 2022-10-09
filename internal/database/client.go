@@ -40,7 +40,14 @@ func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resIt
 		ascOrDesc = "desc"
 	}
 	order := fmt.Sprintf("%s %s", by, ascOrDesc)
-	db := c.db.Preload("MainImageURL").Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
+	// TODO: change %s to ?
+	q := fmt.Sprintf("\"ad_items\".\"%s\" >= ?", by)
+	var db *gorm.DB
+	if by != "id" {
+		db = c.db.Preload("MainImageURL").Model(&AdItem{}).Limit(paginationSize).Offset(offset).Order(order).Find(&items)
+	} else {
+		db = c.db.Preload("MainImageURL").Model(&AdItem{}).Where(q, offset).Limit(paginationSize).Order(order).Find(&items)
+	}
 	err = db.Error
 	if err != nil {
 		return resItems, err

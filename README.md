@@ -240,7 +240,6 @@ curl -X GET "http://localhost:8080/v0.1/list_ads?by=price&asc=false"
 9. [x] Добавить singleflight для кэширования и устранения проблем с дублирующимися запросами
 10. [x] Добавить connection pool
 11. [x] Добавить обработку через easyjson
-12. [x] Убрать singleflight
 
 
 ## Нагрузочное тестирование(примеры)
@@ -251,7 +250,8 @@ curl -X GET "http://localhost:8080/v0.1/list_ads?by=price&asc=false"
 
 ### [go-wrk](https://github.com/tsliwowicz/go-wrk)
 1. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads`
-2. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads/42`
+2. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads?offset=10`
+3. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads/42`
 
 
 ## Оригинальный текст
