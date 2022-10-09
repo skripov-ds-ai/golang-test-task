@@ -24,9 +24,6 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 	// TODO: add fields to use in .Select(fields)
 	var item AdItem
 
-	// squirrel.Select("*").From("ad_items").
-	//	Join("image_urls ON ad_items.id=image_urls.")
-
 	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id)
 	err = db.Error
 	if err != nil {
@@ -52,7 +49,7 @@ func (c *Client) ListAds(offset, paginationSize int, by string, asc bool) (resIt
 }
 
 // CreateAd creates an item
-func (c *Client) CreateAd(item entities.AdJSONItem) (id int, err error) {
+func (c *Client) CreateAd(item entities.AdJSONItem) (id int, itm AdItem, err error) {
 	var mainImageURL *ImageURL
 	size := 0
 	imgURLsSize := len(item.ImageURLs)
@@ -81,7 +78,7 @@ func (c *Client) CreateAd(item entities.AdJSONItem) (id int, err error) {
 	db := c.db.Create(&ad)
 	err = db.Error
 	if err != nil {
-		return 0, err
+		return 0, ad, err
 	}
-	return ad.ID, nil
+	return ad.ID, ad, nil
 }
