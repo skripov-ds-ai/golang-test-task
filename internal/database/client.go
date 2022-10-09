@@ -24,7 +24,7 @@ func (c *Client) GetAd(id int) (res *AdItem, err error) {
 	// TODO: add fields to use in .Select(fields)
 	var item AdItem
 
-	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, id)
+	db := c.db.Preload("ImageURLs").Preload("MainImageURL").First(&item, "id = ?", id)
 	err = db.Error
 	if err != nil {
 		return nil, err
