@@ -178,7 +178,7 @@ func getFieldsDescriptionAsKey(fields map[string]struct{}) string {
 	return fmt.Sprintf("%t_%t", ok1, ok2)
 }
 
-func (hf *HandlerFacade) findAd(key string, id int, fieldsMap map[string]struct{}) (interface{}, error) {
+func (hf *HandlerFacade) findAd(key string, id int, fieldsMap map[string]struct{}) (*entities.APIAdItem, error) {
 	//func (hf *HandlerFacade) findAd(ctx context.Context, key string, id int, fieldsMap map[string]struct{}) (interface{}, error) {
 	//item, err := hf.cache.FindItemValue(ctx, key)
 	item, err := hf.memCache.FindItemValue(key)
