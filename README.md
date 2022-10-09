@@ -240,6 +240,7 @@ curl -X GET "http://localhost:8080/v0.1/list_ads?by=price&asc=false"
 9. [x] Добавить singleflight для кэширования и устранения проблем с дублирующимися запросами
 10. [x] Добавить connection pool
 11. [x] Добавить обработку через easyjson
+12. [x] Перейти с Redis на Memcached
 
 
 ## Нагрузочное тестирование(примеры)
