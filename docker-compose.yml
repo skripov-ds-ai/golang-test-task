@@ -26,6 +26,8 @@ services:
       - redis-data:/data:cached
     ports:
       - '6379:6379/tcp'
+    networks:
+      - big_net
 
   postgres:
     image: postgres:14.4
@@ -39,6 +41,8 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - big_net
 
   nginx:
     build:

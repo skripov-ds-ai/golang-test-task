@@ -1,17 +1,18 @@
 package facade
 
 import (
+	"fmt"
+	"golang-test-task/internal/cache"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
 	"net/http"
-	"sort"
 	"strconv"
 
-	"github.com/mailru/easyjson"
-
 	"github.com/go-playground/validator/v10"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
@@ -25,19 +26,21 @@ type (
 		logger       *zap.Logger
 		handlers     map[string]handler
 		singleflight *singleflight.Group
+		cache        *cache.RedisClient
 	}
 	handler   func(w http.ResponseWriter, r *http.Request)
-	handlerBs func(w http.ResponseWriter, bs []byte)
+	handlerBs func(w http.ResponseWriter, r *http.Request, bs []byte)
 )
 
 // NewHandlerFacade is constructor for HandlerFacade
-func NewHandlerFacade(dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
+func NewHandlerFacade(cache *cache.RedisClient, dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
 	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
 	facade.handlers = make(map[string]handler)
 	facade.handlers["create_ad"] = facade.readAllWrap(facade.createAd)
 	facade.handlers["get_ad"] = facade.getAd
 	facade.handlers["list_ads"] = facade.listAds
 	facade.singleflight = &singleflight.Group{}
+	facade.cache = cache
 	return &facade
 }
 
@@ -58,7 +61,7 @@ func (hf *HandlerFacade) readAllWrap(h handlerBs) handler {
 			_, _ = w.Write(bs)
 			return
 		}
-		h(w, bs)
+		h(w, r, bs)
 	}
 }
 
@@ -175,7 +178,7 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(idx)
 
 	queryFields := r.URL.Query()["fields"]
-	var fields = make([]string, 0)
+	var fieldsMap = make(map[string]struct{})
 	for _, field := range queryFields {
 		if field != "description" && field != "image_urls" {
 			hf.logger.Error("field is not acceptable", zap.String("field", field))
@@ -184,31 +187,50 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(bs)
 			return
 		}
-		fields = append(fields, field)
+		fieldsMap[field] = struct{}{}
 	}
-	if len(fields) > 0 {
-		ok := sort.SliceIsSorted(fields, func(i, j int) bool {
-			return fields[i] < fields[j]
-		})
-		if !ok {
-			sort.Strings(fields)
+
+	ctx := r.Context()
+	key := fmt.Sprintf("item:%d", id)
+	item, err := hf.cache.FindItemValue(ctx, key)
+	hf.logger.Info("XXX", zap.String("item", fmt.Sprintf("%v", item)))
+	if err == redis.Nil {
+		item, err := hf.dbClient.GetAd(id)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			hf.logger.Error("error during getting data from DB in getAd", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			bs, _ = easyjson.Marshal(result)
+			_, _ = w.Write(bs)
+			return
 		}
-	}
-
-	item, err := hf.dbClient.GetAd(id)
-
-	if err != nil && err != gorm.ErrRecordNotFound {
-		hf.logger.Error("error during using singleflight in getAd", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		bs, _ = easyjson.Marshal(result)
-		_, _ = w.Write(bs)
-		return
+		if item != nil {
+			itemToCache := item.CreateMap([]string{"description", "image_urls"})
+			err = hf.cache.SetItemValue(ctx, key, itemToCache)
+			if err != nil {
+				hf.logger.Error("error during caching item in getAd", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				bs, _ = easyjson.Marshal(result)
+				_, _ = w.Write(bs)
+				return
+			}
+			if len(fieldsMap) == 2 {
+				result.Result = &itemToCache
+			} else {
+				m := item.CreateMapFromFields(fieldsMap)
+				result.Result = &m
+			}
+		}
 	}
 
 	result.Status = "success"
 	if item != nil {
-		m := item.CreateMap(fields)
-		result.Result = &m
+		if _, ok := fieldsMap["description"]; !ok {
+			item.Description = ""
+		}
+		if _, ok := fieldsMap["image_urls"]; !ok {
+			item.ImageURLs = []string{}
+		}
+		result.Result = item
 	}
 
 	bs, _ = easyjson.Marshal(result)
@@ -225,13 +247,13 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} entities.CreateAdAnswer{}
 // @Success 200 {object} entities.CreateAdAnswer{}
 // @Router /create_ad [post]
-func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
+func (hf *HandlerFacade) createAd(w http.ResponseWriter, r *http.Request, bs []byte) {
 	result := entities.CreateAdAnswer{ID: nil, Status: "error"}
 	var item entities.AdJSONItem
-	// err := json.Unmarshal(bs, &item)
 	err := easyjson.Unmarshal(bs, &item)
 	if err != nil {
-		hf.logger.Error("error during Unmarshal in createAd", zap.Error(err))
+		hf.logger.Error("error during Unmarshal in createAd",
+			zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		bs, _ = easyjson.Marshal(result)
 		_, _ = w.Write(bs)
@@ -247,7 +269,7 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 		return
 	}
 
-	id, err := hf.dbClient.CreateAd(item)
+	id, itm, err := hf.dbClient.CreateAd(item)
 	if err != nil {
 		hf.logger.Error("error during dbClient.createAd in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -255,6 +277,19 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, bs []byte) {
 		_, _ = w.Write(bs)
 		return
 	}
+
+	ctx := r.Context()
+	key := fmt.Sprintf("item:%d", id)
+	itemToCache := itm.CreateMap([]string{"description", "image_urls"})
+	err = hf.cache.SetItemValue(ctx, key, itemToCache)
+	if err != nil {
+		hf.logger.Error("error during caching item in createAd", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		bs, _ = easyjson.Marshal(result)
+		_, _ = w.Write(bs)
+		return
+	}
+
 	result.Status = "success"
 	result.ID = &id
 
