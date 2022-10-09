@@ -12,8 +12,12 @@ import (
 // RedisClient is for wrapping original redis.Client
 type RedisClient struct {
 	client     *redis.Client
-	MaxRetries int
+	maxRetries int
 	duration   time.Duration
+}
+
+func NewRedisClientForTest(client *redis.Client) *RedisClient {
+	return &RedisClient{client: client, maxRetries: 10, duration: 5 * time.Minute}
 }
 
 // NewRedisClient is constructor for RedisClient
@@ -30,7 +34,7 @@ func NewRedisClient(ctx context.Context, config RedisConfig) *RedisClient {
 	}
 	maxRetries := 10
 	duration := 5 * time.Minute
-	return &RedisClient{client: client, MaxRetries: maxRetries, duration: duration}
+	return &RedisClient{client: client, maxRetries: maxRetries, duration: duration}
 }
 
 func (r *RedisClient) FindItemValue(ctx context.Context, key string) (*entities.APIAdItem, error) {
@@ -56,4 +60,8 @@ func (r *RedisClient) SetItemValue(ctx context.Context, key string, item entitie
 	}
 	_, err = r.client.Set(ctx, key, string(bs), r.duration).Result()
 	return err
+}
+
+func (r *RedisClient) GetDuration() time.Duration {
+	return r.duration
 }

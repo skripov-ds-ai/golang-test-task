@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
+	"golang-test-task/internal/cache"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
@@ -17,10 +19,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-playground/validator/v10"
+	"github.com/go-redis/redismock/v8"
+	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -40,14 +43,16 @@ func (a AnyTime) Match(v driver.Value) bool {
 
 type HandlerFacadeTestSuite struct {
 	suite.Suite
-	mock   *sqlmock.Sqlmock
-	db     *sql.DB
-	gormDB *gorm.DB
-	v      *validator.Validate
-	client *database.Client
-	logger *zap.Logger
-	logic  *HandlerFacade
-	r      *mux.Router
+	mock       *sqlmock.Sqlmock
+	db         *sql.DB
+	gormDB     *gorm.DB
+	v          *validator.Validate
+	client     *database.Client
+	logger     *zap.Logger
+	logic      *HandlerFacade
+	r          *mux.Router
+	redisCache *cache.RedisClient
+	redisMock  *redismock.ClientMock
 }
 
 func (suite *HandlerFacadeTestSuite) SetupSuite() {
@@ -94,6 +99,10 @@ func (suite *HandlerFacadeTestSuite) SetupSuite() {
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	logger, _ := config.Build()
 	suite.logger = logger
+
+	redisDB, redisMock := redismock.NewClientMock()
+	suite.redisCache = cache.NewRedisClientForTest(redisDB)
+	suite.redisMock = &redisMock
 }
 
 func (suite *HandlerFacadeTestSuite) TearDownSuite() {
@@ -101,7 +110,7 @@ func (suite *HandlerFacadeTestSuite) TearDownSuite() {
 }
 
 func (suite *HandlerFacadeTestSuite) SetupTest() {
-	suite.logic = NewHandlerFacade(suite.client, suite.v, suite.logger)
+	suite.logic = NewHandlerFacade(suite.redisCache, suite.client, suite.v, suite.logger)
 
 	getAdHandler, _ := suite.logic.GetHandler("get_ad")
 	listAdsHandler, _ := suite.logic.GetHandler("list_ads")
@@ -119,6 +128,14 @@ func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 	expectedResult := entities.CreateAdAnswer{Status: "success", ID: &id}
 	item := entities.AdJSONItem{Title: "title", Price: decimal.NewFromInt32(0)}
 	mockedRow := sqlmock.NewRows([]string{"id"}).AddRow(strconv.Itoa(id))
+
+	dbItem := database.AdItem{
+		Title: item.Title, Description: item.Description,
+		Price: item.Price, ImageURLs: []database.ImageURL{}, MainImageURL: nil}
+	dbCachedItem := dbItem.CreateMap([]string{"description", "image_urls"})
+	bs, _ := easyjson.Marshal(dbCachedItem)
+	(*suite.redisMock).ExpectSet(fmt.Sprintf("item:%d", id), string(bs), suite.redisCache.GetDuration()).SetVal("OK")
+
 	(*suite.mock).ExpectBegin()
 	(*suite.mock).ExpectQuery(regexp.QuoteMeta(
 		`INSERT INTO "ad_items" ("created_at","updated_at","deleted_at","title","description","price")
