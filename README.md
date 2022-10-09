@@ -16,7 +16,7 @@
 2. Таблицы создаются через `gorm` внутри `app`, БД создается пустой.
 
 ## API
-Address: `http://localhost:8888`
+Address: `http://localhost:8080`
 Prefix: `/api/v0.1`
 
 | Endpoint    | Method | Description                                |
@@ -35,7 +35,7 @@ curl POST -v -d "{
   \"description\": \"Продам гараж\nТелефон:...\",
   \"price\": 45999.99,
   \"image_urls\": [\"photo.example.ru/img/1.png\", \"photo.example.ru/img/2.jpg\", \"photo.example.ru/img/3.jpeg\"],
-}" http://localhost:8888/v0.1/create_ad
+}" http://localhost:8080/v0.1/create_ad
 ```
 Пример успешного ответа:
 ```json
@@ -56,7 +56,7 @@ curl POST -v -d "{
 ### 2. Получить объявление по ID(`/get_ad`)
 Пример запроса:
 ```shell
-curl -X GET "http://localhost:8888/v0.1/get_ad/1?fields=description&fields=image_urls"
+curl -X GET "http://localhost:8080/v0.1/get_ad/1?fields=description&fields=image_urls"
 ```
 Примеры успешных ответов:
 ```json
@@ -98,7 +98,7 @@ curl -X GET "http://localhost:8888/v0.1/get_ad/1?fields=description&fields=image
 ### 3.1. Получить список объявлений для пагинации(вторые 10 объявлений с сортировкой по дате по возрастанию, в случае 13 объявлений в БД)
 Пример запроса:
 ```shell
-curl -X GET "http://localhost:8888/v0.1/list_ads?by=created_at&asc=true&offset=10"
+curl -X GET "http://localhost:8080/v0.1/list_ads?by=created_at&asc=true&offset=10"
 ```
 Пример ответа:
 ```json
@@ -136,7 +136,7 @@ curl -X GET "http://localhost:8888/v0.1/list_ads?by=created_at&asc=true&offset=1
 ### 3.2. Получить список объявлений для пагинации(первые 10 объявлений с сортировкой по цене по убыванию)
 Пример запроса:
 ```shell
-curl -X GET "http://localhost:8888/v0.1/list_ads?by=price&asc=false"
+curl -X GET "http://localhost:8080/v0.1/list_ads?by=price&asc=false"
 ```
 Пример ответа:
 ```json
@@ -241,6 +241,18 @@ curl -X GET "http://localhost:8888/v0.1/list_ads?by=price&asc=false"
 10. [x] Добавить connection pool
 11. [x] Добавить обработку через easyjson
 12. [x] Убрать singleflight
+
+
+## Нагрузочное тестирование(примеры)
+### [plow](https://github.com/six-ddc/plow)
+1. `plow http://localhost:8080/api/v0.1/ads -c 20 -d 10s`
+2. `plow http://localhost:8080/api/v0.1/ads/2 -c 20 -d 10s`
+3. `plow http://localhost:8080/api/v0.1/ads -c 20 -d 1s --body @file.json  -T 'application/json' -m POST`
+
+### [go-wrk](https://github.com/tsliwowicz/go-wrk)
+1. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads`
+2. `go-wrk -c 20 http://localhost:8080/api/v0.1/ads/42`
+
 
 ## Оригинальный текст
 ### **Задача**
