@@ -97,3 +97,6 @@ gen
 # vendor/
 
 dump
+.gitlab-ci.yml
+.gitignore
+README.md

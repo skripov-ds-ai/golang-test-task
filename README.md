@@ -232,13 +232,15 @@ curl -X GET "http://localhost:8888/v0.1/list_ads?by=price&asc=false"
 2. [ ] Добавить `Prometheus`, `Grafana`
 3. [ ] Добавить `Master-Slave репликацию` для `Postgres`
 4. [ ] Добавить `HA Proxy`/`Consul`/`pgpool`/`pgbouncer`
-5. [ ] Добавить `nginx`(с `Consul`) и запустить копии сервиса
+   1. [x] Добавить `Consul`
+5. [x] Добавить `nginx`(с `Consul`) и запустить копии сервиса
 6. [ ] Сгенерировать и хостить `Swagger`-документацию
 7. [ ] Добавить `DELETE`(удаления записей) и `PUT`(изменения записей) методы в сервис
 8. [ ] Добавить тестирование через `dockertest`
 9. [x] Добавить singleflight для кэширования и устранения проблем с дублирующимися запросами
 10. [x] Добавить connection pool
 11. [x] Добавить обработку через easyjson
+12. [x] Убрать singleflight
 
 ## Оригинальный текст
 ### **Задача**
