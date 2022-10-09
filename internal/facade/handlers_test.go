@@ -6,7 +6,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"golang-test-task/internal/cache"
+	"golang-test-task/internal/cache/redis"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
@@ -51,7 +51,7 @@ type HandlerFacadeTestSuite struct {
 	logger     *zap.Logger
 	logic      *HandlerFacade
 	r          *mux.Router
-	redisCache *cache.RedisClient
+	redisCache *redis.Client
 	redisMock  *redismock.ClientMock
 }
 
@@ -101,7 +101,7 @@ func (suite *HandlerFacadeTestSuite) SetupSuite() {
 	suite.logger = logger
 
 	redisDB, redisMock := redismock.NewClientMock()
-	suite.redisCache = cache.NewRedisClientForTest(redisDB)
+	suite.redisCache = redis.NewClientForTest(redisDB)
 	suite.redisMock = &redisMock
 }
 

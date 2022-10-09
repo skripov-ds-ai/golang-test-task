@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"golang-test-task/internal/cache"
+	"golang-test-task/internal/cache/memcached"
+	"golang-test-task/internal/cache/redis"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/facade"
 	"log"
@@ -46,8 +47,8 @@ type App struct {
 }
 
 // NewApp creates an app
-func NewApp(version string, cache *cache.RedisClient, client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
-	logic := facade.NewHandlerFacade(cache, client, v, logger)
+func NewApp(version string, cache *redis.Client, memCache *memcached.Client, client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
+	logic := facade.NewHandlerFacade(cache, memCache, client, v, logger)
 
 	getAdHandler, _ := logic.GetHandler("get_ad")
 	listAdsHandler, _ := logic.GetHandler("list_ads")
@@ -193,15 +194,22 @@ func main() {
 		return true
 	})
 
-	cacheConfig := cache.RedisConfig{}
+	cacheConfig := redis.Config{}
 	cacheConfig.Load()
+
+	memcacheStrings := make([]string, 0)
+	for i := 0; i < 1; i++ {
+		mString := os.Getenv(fmt.Sprintf("MEMCACHED_%d", i+1))
+		memcacheStrings = append(memcacheStrings, mString)
+	}
+	memCache := memcached.NewClient(memcacheStrings...)
 
 	logger.Info("cacheConfig",
 		zap.String("address", cacheConfig.Addr),
 		zap.String("password", cacheConfig.Password),
 		zap.Int("DB", cacheConfig.DB))
 
-	redisCache := cache.NewRedisClient(context.Background(), cacheConfig)
+	redisCache := redis.NewClient(context.Background(), cacheConfig)
 
 	dsn := os.Getenv("DB_DSN")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -222,6 +230,6 @@ func main() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	client := database.NewClient(db)
-	app := NewApp(apiVersion, redisCache, client, v, logger)
+	app := NewApp(apiVersion, redisCache, memCache, client, v, logger)
 	app.Run()
 }

@@ -1,9 +1,11 @@
 package facade
 
 import (
-	"context"
+	//"context"
 	"fmt"
-	"golang-test-task/internal/cache"
+	"github.com/bradfitz/gomemcache/memcache"
+	memcachedCache "golang-test-task/internal/cache/memcached"
+	redisCache "golang-test-task/internal/cache/redis"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/entities"
 	"io"
@@ -11,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/go-redis/redis/v8"
+	//"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
@@ -27,14 +29,15 @@ type (
 		logger       *zap.Logger
 		handlers     map[string]handler
 		singleflight *singleflight.Group
-		cache        *cache.RedisClient
+		cache        *redisCache.Client
+		memCache     *memcachedCache.Client
 	}
 	handler   func(w http.ResponseWriter, r *http.Request)
 	handlerBs func(w http.ResponseWriter, r *http.Request, bs []byte)
 )
 
 // NewHandlerFacade is constructor for HandlerFacade
-func NewHandlerFacade(cache *cache.RedisClient, dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
+func NewHandlerFacade(cache *redisCache.Client, memCache *memcachedCache.Client, dbClient *database.Client, validator *validator.Validate, logger *zap.Logger) *HandlerFacade {
 	facade := HandlerFacade{dbClient: dbClient, validator: validator, logger: logger}
 	facade.handlers = make(map[string]handler)
 	facade.handlers["create_ad"] = facade.readAllWrap(facade.createAd)
@@ -42,6 +45,7 @@ func NewHandlerFacade(cache *cache.RedisClient, dbClient *database.Client, valid
 	facade.handlers["list_ads"] = facade.listAds
 	facade.singleflight = &singleflight.Group{}
 	facade.cache = cache
+	facade.memCache = memCache
 	return &facade
 }
 
@@ -174,9 +178,12 @@ func getFieldsDescriptionAsKey(fields map[string]struct{}) string {
 	return fmt.Sprintf("%t_%t", ok1, ok2)
 }
 
-func (hf *HandlerFacade) findAd(ctx context.Context, key string, id int, fieldsMap map[string]struct{}) (interface{}, error) {
-	item, err := hf.cache.FindItemValue(ctx, key)
-	if err == redis.Nil {
+func (hf *HandlerFacade) findAd(key string, id int, fieldsMap map[string]struct{}) (interface{}, error) {
+	//func (hf *HandlerFacade) findAd(ctx context.Context, key string, id int, fieldsMap map[string]struct{}) (interface{}, error) {
+	//item, err := hf.cache.FindItemValue(ctx, key)
+	item, err := hf.memCache.FindItemValue(key)
+	//if err == redis.Nil {
+	if err == memcache.ErrCacheMiss {
 		item, err := hf.dbClient.GetAd(id)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			hf.logger.Error("error during getting data from DB in getAd", zap.Error(err))
@@ -184,7 +191,8 @@ func (hf *HandlerFacade) findAd(ctx context.Context, key string, id int, fieldsM
 		}
 		if item != nil {
 			itemToCache := item.CreateMap([]string{"description", "image_urls"})
-			err = hf.cache.SetItemValue(ctx, key, itemToCache)
+			//err = hf.cache.SetItemValue(ctx, key, itemToCache)
+			err = hf.memCache.SetItemValue(key, itemToCache)
 			if err != nil {
 				hf.logger.Error("error during caching item in getAd", zap.Error(err))
 				return nil, err
@@ -241,12 +249,13 @@ func (hf *HandlerFacade) getAd(w http.ResponseWriter, r *http.Request) {
 		fieldsMap[field] = struct{}{}
 	}
 
-	ctx := context.Background()
+	//ctx := context.Background()
 	d := getFieldsDescriptionAsKey(fieldsMap)
 	key := fmt.Sprintf("item:%d_%s", id, d)
 
 	itemResult, err, _ := hf.singleflight.Do(key, func() (interface{}, error) {
-		item, err := hf.findAd(ctx, key, id, fieldsMap)
+		//item, err := hf.findAd(ctx, key, id, fieldsMap)
+		item, err := hf.findAd(key, id, fieldsMap)
 		return item, err
 	})
 
@@ -308,10 +317,11 @@ func (hf *HandlerFacade) createAd(w http.ResponseWriter, r *http.Request, bs []b
 		return
 	}
 
-	ctx := context.Background()
+	//ctx := context.Background()
 	key := fmt.Sprintf("item:%d", id)
 	itemToCache := itm.CreateMap([]string{"description", "image_urls"})
-	err = hf.cache.SetItemValue(ctx, key, itemToCache)
+	//err = hf.cache.SetItemValue(ctx, key, itemToCache)
+	err = hf.memCache.SetItemValue(key, itemToCache)
 	if err != nil {
 		hf.logger.Error("error during caching item in createAd", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)

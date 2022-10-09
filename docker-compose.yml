@@ -16,12 +16,33 @@ services:
     depends_on:
       - consul
       - postgres
+      - memcached_1
+      - memcached_2
       - redis
+    networks:
+      - big_net
+
+  memcached_1:
+    image: memcached:1.6.17-alpine
+#    container_name: memcached_1
+    restart: on-failure
+    ports:
+      - "11211:11211"
+    networks:
+      - big_net
+
+  memcached_2:
+    image: memcached:1.6.17-alpine
+#    container_name: memcached_2
+    restart: on-failure
+    ports:
+      - "11213:11211"
     networks:
       - big_net
 
   redis:
     image: redis:6.0.5-alpine
+    restart: on-failure
     volumes:
       - redis-data:/data:cached
     ports:
@@ -58,6 +79,7 @@ services:
 
   consul:
     image: consul:latest
+    restart: on-failure
     ports:
       - "8500:8500"
     networks:
