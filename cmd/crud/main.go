@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/gofrs/uuid"
+	"golang-test-task/internal/cache"
 	"golang-test-task/internal/database"
 	"golang-test-task/internal/facade"
 	"log"
@@ -13,6 +14,8 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/gofrs/uuid"
 
 	consulapi "github.com/hashicorp/consul/api"
 
@@ -43,8 +46,8 @@ type App struct {
 }
 
 // NewApp creates an app
-func NewApp(version string, client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
-	logic := facade.NewHandlerFacade(client, v, logger)
+func NewApp(version string, cache *cache.RedisClient, client *database.Client, v *validator.Validate, logger *zap.Logger) *App {
+	logic := facade.NewHandlerFacade(cache, client, v, logger)
 
 	getAdHandler, _ := logic.GetHandler("get_ad")
 	listAdsHandler, _ := logic.GetHandler("list_ads")
@@ -113,7 +116,6 @@ func serviceRegistryWithConsul() {
 	port, _ := strconv.Atoi(p[1:])
 	address := getHostname()
 
-	fmt.Printf(fmt.Sprintf("http://%s:%v/check", address, port))
 	idx, _ := uuid.NewV4()
 	registration := &consulapi.AgentServiceRegistration{
 		ID:      fmt.Sprintf("%s-%s", name, idx.String()),
@@ -164,8 +166,6 @@ func main() {
 	// TODO: sync it with git tags
 	apiVersion := os.Getenv("API_VERSION")
 
-	dsn := os.Getenv("DB_DSN")
-
 	// TODO: add zap to sentry - https://github.com/TheZeroSlave/zapsentry
 	sentryDSN := os.Getenv("SENTRY_DSN")
 	err := sentry.Init(sentry.ClientOptions{
@@ -193,6 +193,17 @@ func main() {
 		return true
 	})
 
+	cacheConfig := cache.RedisConfig{}
+	cacheConfig.Load()
+
+	logger.Info("cacheConfig",
+		zap.String("address", cacheConfig.Addr),
+		zap.String("password", cacheConfig.Password),
+		zap.Int("DB", cacheConfig.DB))
+
+	redisCache := cache.NewRedisClient(context.Background(), cacheConfig)
+
+	dsn := os.Getenv("DB_DSN")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -211,6 +222,6 @@ func main() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	client := database.NewClient(db)
-	app := NewApp(apiVersion, client, v, logger)
+	app := NewApp(apiVersion, redisCache, client, v, logger)
 	app.Run()
 }

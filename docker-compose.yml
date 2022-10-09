@@ -16,6 +16,16 @@ services:
     depends_on:
       - consul
       - postgres
+      - redis
+    networks:
+      - big_net
+
+  redis:
+    image: redis:6.0.5-alpine
+    volumes:
+      - redis-data:/data:cached
+    ports:
+      - '6379:6379/tcp'
     networks:
       - big_net
 

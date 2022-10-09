@@ -23,9 +23,6 @@ type AdItem struct {
 	Price        decimal.Decimal `sql:"type:decimal(20,8);"`
 	ImageURLs    []ImageURL      `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	MainImageURL *ImageURL       `gorm:"foreignKey:AdItemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	// CreatedAt    time.Time
-	// UpdatedAt    time.Time
-	// DeletedAt    sql.NullTime
 }
 
 // CreateMap creates map based on fields to show
@@ -49,6 +46,30 @@ func (item *AdItem) CreateMap(fields []string) entities.APIAdItem {
 			}
 			itm.ImageURLs = imgUrls
 		}
+	}
+	return itm
+}
+
+// CreateMapFromFields creates map based on fields' map to show
+func (item *AdItem) CreateMapFromFields(fields map[string]struct{}) entities.APIAdItem {
+	itm := entities.APIAdItem{}
+	itm.ID = item.ID
+	itm.Title = item.Title
+	itm.Price = item.Price
+	var u *string
+	if item.MainImageURL != nil {
+		u = &item.MainImageURL.URL
+	}
+	itm.MainImageURL = u
+	if _, ok := fields["description"]; ok {
+		itm.Description = item.Description
+	}
+	if _, ok := fields["image_urls"]; ok {
+		imgUrls := make([]string, 0)
+		for _, v := range item.ImageURLs {
+			imgUrls = append(imgUrls, v.URL)
+		}
+		itm.ImageURLs = imgUrls
 	}
 	return itm
 }

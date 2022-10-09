@@ -136,7 +136,7 @@ func TestClient_CreateAd(t *testing.T) {
 	mock.ExpectClose()
 
 	client := NewClient(gormDB)
-	actualID, err := client.CreateAd(item)
+	actualID, _, err := client.CreateAd(item)
 	if err != nil {
 		t.Fatalf("err != nil ; err = %v", err)
 	}
@@ -188,7 +188,7 @@ func TestClient_CreateAdWithImages(t *testing.T) {
 	mock.ExpectClose()
 
 	client := NewClient(gormDB)
-	actualID, err := client.CreateAd(item)
+	actualID, _, err := client.CreateAd(item)
 	if err != nil {
 		t.Fatalf("err != nil ; err = %v", err)
 	}
