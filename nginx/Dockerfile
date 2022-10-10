@@ -23,7 +23,7 @@ RUN mkdir -p /scripts/
 COPY nginx/start.sh /scripts/start.sh
 COPY nginx/nginx.conf.tmpl /scripts/nginx.conf.tmpl
 COPY nginx/consul-template-config.hcl /scripts/consul-template-config.hcl
-
+ADD nginx/nginx.conf /etc/nginx/nginx.conf
 
 RUN ["chmod", "+x", "/scripts/start.sh"]
 ENTRYPOINT ["/scripts/start.sh"]
