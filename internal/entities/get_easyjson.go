@@ -37,7 +37,7 @@ func easyjson89020eaDecodeGolangTestTaskInternalEntities(in *jlexer.Lexer, out *
 		}
 		switch key {
 		case "status":
-			out.Status = string(in.String())
+			out.Status = ResultStatus(in.String())
 		case "result":
 			if in.IsNull() {
 				in.Skip()

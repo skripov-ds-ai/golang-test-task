@@ -83,9 +83,14 @@ func TestClient_ListAdsEmptyDB(t *testing.T) {
 
 	mock.MatchExpectationsInOrder(true)
 
+	// mock.ExpectQuery(regexp.QuoteMeta(
+	//	`SELECT "ad_items"."id","ad_items"."title","ad_items"."price"
+	//		FROM "ad_items" WHERE "ad_items"."deleted_at" IS NULL ORDER BY id asc LIMIT 10`)).
+	//	WillReturnRows(sqlmock.NewRows([]string{}))
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT "ad_items"."id","ad_items"."title","ad_items"."price" 
-			FROM "ad_items" WHERE "ad_items"."deleted_at" IS NULL ORDER BY id asc LIMIT 10`)).
+			FROM "ad_items" WHERE "ad_items"."id" >= $1 AND "ad_items"."deleted_at" IS NULL ORDER BY id asc LIMIT 10`)).
+		WithArgs(0).
 		WillReturnRows(sqlmock.NewRows([]string{}))
 
 	mock.ExpectQuery(regexp.QuoteMeta(

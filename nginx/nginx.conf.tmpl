@@ -1,14 +1,14 @@
 upstream backend {
-{{- range service "app" }}
-  server {{ .Address }}:{{ .Port }};
-{{- end }}
+    {{- range service "app" }}
+    server {{ .Address }}:{{ .Port }};
+    {{- end }}
 }
 
 server {
-   listen 80;
+    listen 80;
 
-   location / {
-      proxy_pass http://backend;
-      proxy_pass_request_headers on;
-   }
+    location / {
+        proxy_pass http://backend;
+        proxy_pass_request_headers on;
+    }
 }

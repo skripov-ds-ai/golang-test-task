@@ -6,8 +6,8 @@ type (
 	// CreateAdAnswer stores a status of created item
 	// and an ID of created item(if it was created)
 	CreateAdAnswer struct {
-		Status string `json:"status"`
-		ID     *int   `json:"id"`
+		Status ResultStatus `json:"status"`
+		ID     *int         `json:"id"`
 	}
 
 	// AdJSONItem contains the information to write to AdItem table
