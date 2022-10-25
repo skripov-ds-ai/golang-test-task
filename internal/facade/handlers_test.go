@@ -1,13 +1,13 @@
 package facade
 
-//// AnyTime is mock for time
+// // AnyTime is mock for time
 // type AnyTime struct{}
 //
-//// Match for AnyTime mocking
+// // Match for AnyTime mocking
 // func (a AnyTime) Match(v driver.Value) bool {
 //	_, ok := v.(time.Time)
 //	return ok
-//}
+// }
 //
 // type HandlerFacadeTestSuite struct {
 //	suite.Suite
@@ -21,9 +21,9 @@ package facade
 //	r          *mux.Router
 //	redisCache *redis.Client
 //	redisMock  *redismock.ClientMock
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) SetupSuite() {
+// func (suite *HandlerFacadeTestSuite) SetupSuite() {
 //	db, mock, err := sqlmock.New()
 //	if err != nil {
 //		suite.T().Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -71,13 +71,13 @@ package facade
 //	redisDB, redisMock := redismock.NewClientMock()
 //	suite.redisCache = redis.NewClientForTest(redisDB)
 //	suite.redisMock = &redisMock
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TearDownSuite() {
+// func (suite *HandlerFacadeTestSuite) TearDownSuite() {
 //	_ = suite.db.Close()
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) SetupTest() {
+// func (suite *HandlerFacadeTestSuite) SetupTest() {
 //	suite.logic = NewHandlerFacade(suite.redisCache, suite.client, suite.v, suite.logger)
 //
 //	getAdHandler, _ := suite.logic.GetHandler("get_ad")
@@ -89,9 +89,9 @@ package facade
 //	suite.r.HandleFunc("/ads/{id:[0-9]+}", getAdHandler).Methods("GET")
 //	suite.r.HandleFunc("/ads", listAdsHandler).Methods("GET")
 //	suite.r.HandleFunc("/ads", createAdHandler).Methods("POST")
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestCreateAd() {
+// func (suite *HandlerFacadeTestSuite) TestCreateAd() {
 //	id := 0
 //	expectedResult := entities.CreateAdAnswer{Status: "success", ID: &id}
 //	item := entities.AdJSONItem{Title: "title", Price: decimal.NewFromInt32(0)}
@@ -140,9 +140,9 @@ package facade
 //		suite.T().Fatalf("actualResult != expectedResult; actualResult = %v ; expectedResult = %v",
 //			actualResult, expectedResult)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestCreateAdInvalidStruct() {
+// func (suite *HandlerFacadeTestSuite) TestCreateAdInvalidStruct() {
 //	item := entities.AdJSONItem{Price: decimal.NewFromInt32(0)}
 //
 //	defer func() {
@@ -163,9 +163,9 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestCreateAdDBError() {
+// func (suite *HandlerFacadeTestSuite) TestCreateAdDBError() {
 //	item := entities.AdJSONItem{Title: "title", Price: decimal.NewFromInt32(0)}
 //	(*suite.mock).ExpectCommit()
 //
@@ -187,9 +187,9 @@ package facade
 //	if resp.StatusCode != http.StatusInternalServerError {
 //		suite.T().Fatalf("resp.StatusCode != 500; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestGetAdNotFound() {
+// func (suite *HandlerFacadeTestSuite) TestGetAdNotFound() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -204,9 +204,9 @@ package facade
 //	if resp.StatusCode != http.StatusNotFound {
 //		suite.T().Fatalf("resp.StatusCode != 404; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestGetAdNegativeID() {
+// func (suite *HandlerFacadeTestSuite) TestGetAdNegativeID() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -219,9 +219,9 @@ package facade
 //	if resp.StatusCode != http.StatusNotFound {
 //		suite.T().Fatalf("resp.StatusCode != 404; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestGetAdInvalidFields() {
+// func (suite *HandlerFacadeTestSuite) TestGetAdInvalidFields() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -234,9 +234,9 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestListAdsStringOffset() {
+// func (suite *HandlerFacadeTestSuite) TestListAdsStringOffset() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -249,9 +249,9 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestListAdsNegativeOffset() {
+// func (suite *HandlerFacadeTestSuite) TestListAdsNegativeOffset() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -264,9 +264,9 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestListAdsInvalidBy() {
+// func (suite *HandlerFacadeTestSuite) TestListAdsInvalidBy() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -279,9 +279,9 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func (suite *HandlerFacadeTestSuite) TestListAdsInvalidAsc() {
+// func (suite *HandlerFacadeTestSuite) TestListAdsInvalidAsc() {
 //	defer func() {
 //		_ = suite.logger.Sync()
 //	}()
@@ -294,8 +294,8 @@ package facade
 //	if resp.StatusCode != http.StatusUnprocessableEntity {
 //		suite.T().Fatalf("resp.StatusCode != 422; resp.StatusCode = %d", resp.StatusCode)
 //	}
-//}
+// }
 //
-//func TestHandlerFacadeTestSuite(t *testing.T) {
+// func TestHandlerFacadeTestSuite(t *testing.T) {
 //	suite.Run(t, new(HandlerFacadeTestSuite))
-//}
+// }
