@@ -42,9 +42,7 @@ jobs:
           cache-dependency-path: "go.sum"
 
       - name: Run Unit tests
-        run: |
-          go generate ./...
-          go test -v -race -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test -v -race -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Clean test coverage
         run: cat ./coverage.out | grep -v -e "_easyjson.go" -e "cmd" -e "entities" > cover.out
