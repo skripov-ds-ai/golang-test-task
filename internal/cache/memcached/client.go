@@ -1,18 +1,20 @@
 package memcached
 
 import (
-	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/mailru/easyjson"
 	"golang-test-task/internal/entities"
 	"time"
+
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/mailru/easyjson"
 )
 
+// Client is a wrapper for Memcached
 type Client struct {
-	client     *memcache.Client
-	maxRetries int
-	duration   time.Duration
+	client   *memcache.Client
+	duration time.Duration
 }
 
+// NewClient is a constructor for Memcached wrapper
 func NewClient(memcacheStrings ...string) *Client {
 	m := memcache.New(memcacheStrings...)
 	if err := m.Ping(); err != nil {
